@@ -3,9 +3,12 @@
 
 {% block pdf_content %}
 <div class="pdf-header">
-  <div>
-    <div class="shop-name">{{ shop_name }}</div>
-    <div class="shop-tagline">UTV Performance &amp; Repair</div>
+  <div style="display:flex; align-items:center; gap:10px;">
+    <img src="img/logo.png" style="height:48px; width:auto;" alt="{{ shop_name }}">
+    <div>
+      <div class="shop-name">{{ shop_name }}</div>
+      <div class="shop-tagline">Built For the Terrain. Done Right.</div>
+    </div>
   </div>
   <div class="shop-contact">
     {{ shop_address }}<br/>
@@ -129,10 +132,24 @@
 </p>
 {% endif %}
 
-<!-- Signatures -->
+<!-- Additional Notes / Findings -->
+<div class="section-heading">Additional Notes / Findings</div>
+<div class="narrative-box" style="min-height:52px;">{{ ro.additional_notes or '' }}</div>
+
+<!-- Authorization & Terms -->
+<div class="section-heading">Authorization &amp; Terms</div>
+<div class="waiver-text">
+  <p>By signing below, customer authorizes Red Dirt UTV Performance LLC to perform the work described above and agrees to the following:</p>
+  <p><strong>1.</strong> Estimates are not guarantees. Additional issues discovered will be communicated before proceeding.</p>
+  <p><strong>2.</strong> Red Dirt UTV Performance LLC is not responsible for loss or damage to vehicles or personal articles due to fire, theft, or causes beyond our control.</p>
+  <p><strong>3.</strong> Payment in full is due upon completion before vehicle is released.</p>
+  <p><strong>4.</strong> Vehicles not retrieved within 7 days of completion notice may incur a storage fee.</p>
+  <p><strong>5.</strong> Vehicles not retrieved within 30 days will be processed as abandoned per Texas law.</p>
+</div>
+
 <div class="sig-grid">
   <div class="sig-block">
-    <div class="sig-label">Customer Signature — Authorization</div>
+    <div class="sig-label">Customer Signature — Authorizing Work</div>
     <div class="sig-line"></div>
     <div class="sig-sub-label">{{ customer.name }}</div>
   </div>

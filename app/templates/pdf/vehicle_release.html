@@ -3,9 +3,12 @@
 
 {% block pdf_content %}
 <div class="pdf-header">
-  <div>
-    <div class="shop-name">{{ shop_name }}</div>
-    <div class="shop-tagline">UTV Performance &amp; Repair</div>
+  <div style="display:flex; align-items:center; gap:10px;">
+    <img src="img/logo.png" style="height:48px; width:auto;" alt="{{ shop_name }}">
+    <div>
+      <div class="shop-name">{{ shop_name }}</div>
+      <div class="shop-tagline">Built For the Terrain. Done Right.</div>
+    </div>
   </div>
   <div class="shop-contact">
     {{ shop_address }}<br/>
@@ -16,14 +19,31 @@
 
 <div class="doc-title-block">
   <div class="doc-title">Vehicle Release Form</div>
-  <div class="doc-subtitle">To be completed upon vehicle pickup</div>
 </div>
-<div style="text-align:center; margin-bottom:12px;">
-  <span class="ro-badge">RO# {{ ro.ro_number }}</span>
-  &nbsp;&nbsp;
-  <strong>Date In:</strong> {{ ro.date_in.strftime('%m/%d/%Y') if ro.date_in else '—' }}
-  &nbsp;&nbsp;
-  <strong>Date Out:</strong> {{ ro.date_out.strftime('%m/%d/%Y') if ro.date_out else '___________' }}
+
+<!-- Top row: RO# / Date / Technician / Payment Method -->
+<div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:8px; margin-bottom:14px;">
+  <div class="info-box">
+    <div class="info-box-title">RO #</div>
+    <div style="font-size:9pt; font-weight:500; padding-top:2px;">{{ ro.ro_number }}</div>
+  </div>
+  <div class="info-box">
+    <div class="info-box-title">Date</div>
+    <div style="font-size:9pt; font-weight:500; padding-top:2px;">{{ ro.date_out.strftime('%m/%d/%Y') if ro.date_out else '' }}</div>
+  </div>
+  <div class="info-box">
+    <div class="info-box-title">Technician</div>
+    <div style="font-size:9pt; font-weight:500; padding-top:2px;">{{ ro.technician or '' }}</div>
+  </div>
+  <div class="info-box">
+    <div class="info-box-title">Payment Method</div>
+    <div style="font-size:8pt; padding-top:3px; display:flex; gap:8px;">
+      <span>&#9633; Cash</span>
+      <span>&#9633; Check</span>
+      <span>&#9633; Card</span>
+      <span>&#9633; Other</span>
+    </div>
+  </div>
 </div>
 
 <!-- Customer + Machine -->
@@ -36,76 +56,88 @@
     <div class="info-row"><span class="info-label">Address:</span><span class="info-value">{{ customer.full_address or '' }}</span></div>
   </div>
   <div class="info-box">
-    <div class="info-box-title">Vehicle</div>
+    <div class="info-box-title">Vehicle Information</div>
     {% if machine %}
     <div class="info-row"><span class="info-label">Year/Make/Model:</span><span class="info-value">{{ machine.display_name }}</span></div>
-    <div class="info-row"><span class="info-label">Engine/CC:</span><span class="info-value">{{ machine.engine_cc or '' }}</span></div>
-    <div class="info-row"><span class="info-label">Color:</span><span class="info-value">{{ machine.color or '' }}</span></div>
-    <div class="info-row"><span class="info-label">VIN / Serial:</span><span class="info-value">{{ machine.vin or '' }}</span></div>
+    <div class="info-row"><span class="info-label">Engine / CC:</span><span class="info-value">{{ machine.engine_cc or '' }}</span></div>
+    <div class="info-row"><span class="info-label">VIN / Serial #:</span><span class="info-value">{{ machine.vin or '' }}</span></div>
+    <div class="info-row"><span class="info-label">Odometer / Hours at Release:</span><span class="info-value">{{ machine.odometer_hours or '' }}</span></div>
     {% endif %}
-    <div class="info-row"><span class="info-label">Technician:</span><span class="info-value">{{ ro.technician or '' }}</span></div>
   </div>
 </div>
 
-<!-- Summary of work -->
-<div class="section-heading">Summary of Work Performed</div>
+<!-- Work Completed -->
+<div class="section-heading">Work Completed</div>
 <div class="narrative-box">{{ ro.work_performed or '—' }}</div>
 
-<!-- Totals summary -->
-<div class="section-heading">Invoice Summary</div>
-<table class="totals-table" style="margin: 8px 0 12px 0; width: 100%;">
-  <tbody>
-    <tr><td class="total-label">Parts</td><td class="total-value">${{ '%.2f'|format(ro.parts_total|float) }}</td></tr>
-    <tr><td class="total-label">Labor</td><td class="total-value">${{ '%.2f'|format(ro.labor_total|float) }}</td></tr>
-    <tr><td class="total-label">Tax ({{ '%.2f'|format((ro.tax_rate|float)*100) }}%)</td><td class="total-value">${{ '%.2f'|format(ro.tax_amount) }}</td></tr>
-    <tr class="grand-row"><td class="total-label">TOTAL PAID</td><td class="total-value">${{ '%.2f'|format(ro.grand_total|float) }}</td></tr>
-  </tbody>
-</table>
-
-<!-- Payment method -->
-<div class="section-heading">Payment Method</div>
-<div style="display: flex; gap: 30px; margin: 8px 0 14px 0; font-size: 10pt;">
-  <label>&#9633; Cash</label>
-  <label>&#9633; Check #__________</label>
-  <label>&#9633; Card</label>
-  <label>&#9633; Other: _______________</label>
+<!-- Payment Summary + Notes side by side -->
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+  <div>
+    <div class="section-heading" style="margin-top:0;">Payment Summary</div>
+    <table class="totals-table" style="width:100%; margin:0;">
+      <tbody>
+        <tr><td class="total-label">Parts</td><td class="total-value">${{ '%.2f'|format(ro.parts_total|float) }}</td></tr>
+        <tr><td class="total-label">Labor</td><td class="total-value">${{ '%.2f'|format(ro.labor_total|float) }}</td></tr>
+        <tr><td class="total-label">Tax ({{ '%.2f'|format((ro.tax_rate|float)*100) }}%)</td><td class="total-value">${{ '%.2f'|format(ro.tax_amount) }}</td></tr>
+        <tr class="grand-row"><td class="total-label">TOTAL PAID</td><td class="total-value">${{ '%.2f'|format(ro.grand_total|float) }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div>
+    <div class="section-heading" style="margin-top:0;">Notes</div>
+    <div class="narrative-box" style="min-height:70px;">{{ ro.additional_notes or '' }}</div>
+  </div>
 </div>
 
-<!-- Release Text -->
-<div class="section-heading">Vehicle Release &amp; Acknowledgment</div>
+<!-- Pre-Release Checklist -->
+<div class="section-heading">Pre-Release Checklist</div>
+<div style="font-size:9pt; margin-bottom:12px;">
+  <p style="color:#555; font-size:8pt; margin-bottom:6px;">Technician confirms the following prior to vehicle release:</p>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px 20px;">
+    <label>&#9633; Work performed as described on RO</label>
+    <label>&#9633; Fluids checked and topped as applicable</label>
+    <label>&#9633; All fasteners torqued and secured</label>
+    <label>&#9633; Customer notified of any deferred items</label>
+    <label>&#9633; Test operation completed satisfactorily</label>
+    <label>&nbsp;</label>
+    <label>&#9633; No known unresolved issues at release</label>
+    <label>&nbsp;</label>
+  </div>
+</div>
+
+<!-- Deferred Items / Customer Notes -->
+<div class="section-heading">Deferred Items / Customer Notes</div>
+<div class="narrative-box" style="min-height:40px;">&nbsp;</div>
+
+<!-- Customer Release -->
+<div class="section-heading">Customer Release</div>
 <div class="waiver-text">
-  <p>I, the undersigned, hereby acknowledge and agree to the following:</p>
-
-  <p><strong>1. Vehicle Condition.</strong> I have inspected my vehicle and acknowledge that the work described above has been completed to my satisfaction. Any concerns regarding the repair must be raised prior to my signature on this form.</p>
-
-  <p><strong>2. Payment.</strong> I acknowledge that full payment in the amount shown above has been rendered. I understand that returned checks are subject to a returned check fee, and that unpaid balances may result in a mechanic's lien being placed on the vehicle in accordance with Texas law.</p>
-
-  <p><strong>3. Warranty.</strong> Any warranty on labor or parts installed by the shop will be disclosed separately. Customer-Supplied Parts carry no warranty from the shop.</p>
-
-  <p><strong>4. Release of Vehicle.</strong> By signing below, I authorize the release of my vehicle and confirm that I am satisfied with the work completed. Red Dirt UTV Performance is released from further liability for the repairs listed on this order once the vehicle has been released.</p>
-
-  <p><strong>5. Unclaimed Vehicles.</strong> Vehicles not picked up within 30 days of notification may be subject to storage fees and, after 90 days, may be considered abandoned under Texas Transportation Code § 683.</p>
+  <p>By signing below, customer acknowledges and agrees:</p>
+  <p><strong>1.</strong> Vehicle has been inspected and accepted in the condition described above.</p>
+  <p><strong>2.</strong> All work described on the Repair Order has been completed to customer's satisfaction, or exceptions are noted in Deferred Items above.</p>
+  <p><strong>3.</strong> Payment in full has been received. No further balance is owed for this Repair Order unless otherwise noted.</p>
+  <p><strong>4.</strong> Red Dirt UTV Performance LLC is released from liability for the completed work described herein.</p>
+  <p><strong>5.</strong> Customer-supplied parts (if any) are governed by the signed Customer-Supplied Parts Waiver.</p>
 </div>
 
 <div class="sig-grid">
   <div class="sig-block">
-    <div class="sig-label">Customer Signature</div>
+    <div class="sig-label">Customer Signature — Vehicle Accepted &amp; Payment Confirmed</div>
     <div class="sig-line"></div>
     <div class="sig-sub-label">{{ customer.name }}</div>
   </div>
   <div class="sig-block">
-    <div class="sig-label">Date of Pickup</div>
+    <div class="sig-label">Date</div>
     <div class="sig-line"></div>
   </div>
   <div class="sig-block">
-    <div class="sig-label">Print Name</div>
+    <div class="sig-label">Technician Signature</div>
     <div class="sig-line"></div>
-    <div class="sig-sub-label">&nbsp;</div>
+    <div class="sig-sub-label">{{ ro.technician or 'Red Dirt UTV Performance' }}</div>
   </div>
   <div class="sig-block">
-    <div class="sig-label">Released By (Shop)</div>
+    <div class="sig-label">Date</div>
     <div class="sig-line"></div>
-    <div class="sig-sub-label">Red Dirt UTV Performance</div>
   </div>
 </div>
 {% endblock %}

@@ -3,9 +3,12 @@
 
 {% block pdf_content %}
 <div class="pdf-header">
-  <div>
-    <div class="shop-name">{{ shop_name }}</div>
-    <div class="shop-tagline">UTV Performance &amp; Repair</div>
+  <div style="display:flex; align-items:center; gap:10px;">
+    <img src="img/logo.png" style="height:48px; width:auto;" alt="{{ shop_name }}">
+    <div>
+      <div class="shop-name">{{ shop_name }}</div>
+      <div class="shop-tagline">Built For the Terrain. Done Right.</div>
+    </div>
   </div>
   <div class="shop-contact">
     {{ shop_address }}<br/>
@@ -16,12 +19,22 @@
 
 <div class="doc-title-block">
   <div class="doc-title">Customer-Supplied Parts Waiver</div>
-  <div class="doc-subtitle">Please read carefully before signing</div>
 </div>
-<div style="text-align:center; margin-bottom:12px;">
-  <span class="ro-badge">RO# {{ ro.ro_number }}</span>
-  &nbsp;&nbsp;
-  <strong>Date:</strong> {{ ro.date_in.strftime('%m/%d/%Y') if ro.date_in else '___________' }}
+
+<!-- Top row: Date / RO# / Technician -->
+<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:14px;">
+  <div class="info-box">
+    <div class="info-box-title">Date</div>
+    <div style="font-size:9pt; font-weight:500; padding-top:2px;">{{ ro.date_in.strftime('%m/%d/%Y') if ro.date_in else '' }}</div>
+  </div>
+  <div class="info-box">
+    <div class="info-box-title">RO #</div>
+    <div style="font-size:9pt; font-weight:500; padding-top:2px;">{{ ro.ro_number }}</div>
+  </div>
+  <div class="info-box">
+    <div class="info-box-title">Technician</div>
+    <div style="font-size:9pt; font-weight:500; padding-top:2px;">{{ ro.technician or '' }}</div>
+  </div>
 </div>
 
 <!-- Customer + Machine -->
@@ -30,51 +43,75 @@
     <div class="info-box-title">Customer</div>
     <div class="info-row"><span class="info-label">Name:</span><span class="info-value">{{ customer.name }}</span></div>
     <div class="info-row"><span class="info-label">Phone:</span><span class="info-value">{{ customer.phone or '' }}</span></div>
-    <div class="info-row"><span class="info-label">Email:</span><span class="info-value">{{ customer.email or '' }}</span></div>
   </div>
   <div class="info-box">
-    <div class="info-box-title">Vehicle</div>
+    <div class="info-box-title">Vehicle Information</div>
     {% if machine %}
     <div class="info-row"><span class="info-label">Year/Make/Model:</span><span class="info-value">{{ machine.display_name }}</span></div>
-    <div class="info-row"><span class="info-label">VIN / Serial:</span><span class="info-value">{{ machine.vin or '' }}</span></div>
+    <div class="info-row"><span class="info-label">Engine / CC:</span><span class="info-value">{{ machine.engine_cc or '' }}</span></div>
+    <div class="info-row"><span class="info-label">VIN / Serial #:</span><span class="info-value">{{ machine.vin or '' }}</span></div>
+    <div class="info-row"><span class="info-label">Odometer / Hours:</span><span class="info-value">{{ machine.odometer_hours or '' }}</span></div>
     {% endif %}
   </div>
 </div>
 
 <!-- Parts List -->
-<div class="section-heading">Customer-Supplied Parts</div>
+<div class="section-heading">Customer-Supplied Parts List</div>
 {% set supplied_parts = ro.line_items|selectattr('customer_supplied')|list %}
 {% if supplied_parts %}
 <table>
   <thead>
-    <tr><th>Part Description</th></tr>
+    <tr>
+      <th>Part Description</th>
+      <th>Part Number / Source</th>
+      <th class="right">Qty</th>
+    </tr>
   </thead>
   <tbody>
     {% for item in supplied_parts %}
-    <tr><td>{{ item.description }}</td></tr>
+    <tr>
+      <td>{{ item.description }}</td>
+      <td>{{ item.part_number or '' }}</td>
+      <td class="right">{{ item.quantity }}</td>
+    </tr>
     {% endfor %}
   </tbody>
 </table>
 {% else %}
-<div class="narrative-box">{{ ro.customer_parts_notes or '(See repair order for details)' }}</div>
+<table>
+  <thead>
+    <tr>
+      <th>Part Description</th>
+      <th>Part Number / Source</th>
+      <th class="right">Qty</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+    <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+    <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+  </tbody>
+</table>
 {% endif %}
 
-<!-- Waiver Text -->
-<div class="section-heading">Waiver &amp; Release of Liability</div>
+<!-- Terms & Conditions -->
+<div class="section-heading">Terms &amp; Conditions</div>
 <div class="waiver-text">
-  <p>I, the undersigned, hereby acknowledge that I am providing parts and/or materials ("Customer-Supplied Parts") to Red Dirt UTV Performance ("Shop") for use in the service and/or repair of my vehicle described above.</p>
+  <p>THE UNDERSIGNED CUSTOMER ACKNOWLEDGES AND AGREES TO THE FOLLOWING:</p>
 
-  <p><strong>I understand and agree to the following:</strong></p>
+  <p><strong>1. PARTS PROVIDED BY CUSTOMER.</strong> Customer has supplied the above-listed parts for installation. Red Dirt UTV Performance LLC did not source, select, or verify the quality, compatibility, or condition of these parts.</p>
 
-  <p><strong>1. No Warranty on Customer-Supplied Parts.</strong> The Shop does not warranty, guarantee, or make any representations regarding the quality, fitment, performance, or merchantability of any Customer-Supplied Parts. Any warranty claims for such parts must be directed to the original manufacturer or seller.</p>
+  <p><strong>2. NO WARRANTY ON CUSTOMER-SUPPLIED PARTS.</strong> Red Dirt UTV Performance LLC makes NO WARRANTY, EXPRESS OR IMPLIED, on any customer-supplied part or on any repair using customer-supplied parts. If a part fails, is incompatible, or causes further damage, Red Dirt UTV Performance LLC bears no responsibility.</p>
 
-  <p><strong>2. Risk of Failure.</strong> Customer-Supplied Parts may not meet manufacturer specifications. The Shop accepts no responsibility for any damage to the vehicle, other parts, or property resulting from the use, failure, or improper fitment of Customer-Supplied Parts.</p>
+  <p><strong>3. LABOR CHARGES APPLY TO REWORK.</strong> If a customer-supplied part fails and the repair must be redone, full labor charges apply to any rework, removal, or reinstallation.</p>
 
-  <p><strong>3. Labor Charges.</strong> In the event that Customer-Supplied Parts fail, are defective, or require replacement, I agree to pay all additional labor charges associated with removal, re-installation, and any related repairs.</p>
+  <p><strong>4. RISK OF FURTHER DAMAGE.</strong> Customer acknowledges that installing an incompatible, defective, or incorrect part may result in damage to the vehicle or other components. Customer accepts full responsibility for any such damage.</p>
 
-  <p><strong>4. Indemnification.</strong> I agree to indemnify, defend, and hold harmless Red Dirt UTV Performance, its owners, employees, and agents from any claims, damages, costs, or expenses arising from the use of Customer-Supplied Parts.</p>
+  <p><strong>5. TECHNICIAN DISCRETION.</strong> Red Dirt UTV Performance LLC reserves the right to decline installation of any customer-supplied part deemed defective, incorrect, or unsafe.</p>
 
-  <p><strong>5. Authorization.</strong> By signing below, I authorize the Shop to proceed with the installation of the Customer-Supplied Parts listed above and acknowledge that I have read, understand, and accept all terms of this waiver.</p>
+  <p><strong>6. PAYMENT.</strong> Labor charges for installation of customer-supplied parts are due in full upon completion regardless of part performance.</p>
+
+  <p>BY SIGNING BELOW, CUSTOMER ACKNOWLEDGES THEY HAVE READ, UNDERSTOOD, AND AGREE TO THE ABOVE TERMS.</p>
 </div>
 
 <div class="sig-grid">
@@ -90,12 +127,10 @@
   <div class="sig-block">
     <div class="sig-label">Print Name</div>
     <div class="sig-line"></div>
-    <div class="sig-sub-label">&nbsp;</div>
   </div>
   <div class="sig-block">
-    <div class="sig-label">Shop Representative</div>
+    <div class="sig-label">Relationship to Vehicle Owner</div>
     <div class="sig-line"></div>
-    <div class="sig-sub-label">Red Dirt UTV Performance</div>
   </div>
 </div>
 {% endblock %}

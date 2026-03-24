@@ -4,9 +4,12 @@
 {% block pdf_content %}
 <!-- Header -->
 <div class="pdf-header">
-  <div>
-    <div class="shop-name">{{ shop_name }}</div>
-    <div class="shop-tagline">UTV Performance &amp; Repair</div>
+  <div style="display:flex; align-items:center; gap:10px;">
+    <img src="img/logo.png" style="height:48px; width:auto;" alt="{{ shop_name }}">
+    <div>
+      <div class="shop-name">{{ shop_name }}</div>
+      <div class="shop-tagline">Built For the Terrain. Done Right.</div>
+    </div>
   </div>
   <div class="shop-contact">
     {{ shop_address }}<br/>
@@ -17,76 +20,137 @@
 
 <div class="doc-title-block">
   <div class="doc-title">Customer Intake Form</div>
-  <div class="doc-subtitle">Please review and complete all applicable fields</div>
-</div>
-<div style="text-align:center; margin-bottom:12px;">
-  <span class="ro-badge">RO# {{ ro.ro_number }}</span>
-  &nbsp;&nbsp;
-  <strong>Date In:</strong> {{ ro.date_in.strftime('%m/%d/%Y') if ro.date_in else '___________' }}
 </div>
 
-<!-- Customer + Machine -->
-<div class="info-grid">
+<!-- Top row: Date / Intake By / Source / RO# -->
+<div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:8px; margin-bottom:14px;">
   <div class="info-box">
-    <div class="info-box-title">Customer Information</div>
-    <div class="info-row"><span class="info-label">Name:</span><span class="info-value">{{ customer.name }}</span></div>
-    <div class="info-row"><span class="info-label">Phone:</span><span class="info-value">{{ customer.phone or '' }}</span></div>
-    <div class="info-row"><span class="info-label">Email:</span><span class="info-value">{{ customer.email or '' }}</span></div>
-    <div class="info-row"><span class="info-label">Address:</span><span class="info-value">{{ customer.address or '' }}</span></div>
-    <div class="info-row"><span class="info-label">City/ST/ZIP:</span><span class="info-value">{{ customer.city or '' }}{% if customer.state %}, {{ customer.state }}{% endif %} {{ customer.zip_code or '' }}</span></div>
+    <div class="info-box-title">Date</div>
+    <div style="font-size:9pt; font-weight:500; padding-top:2px;">{{ ro.date_in.strftime('%m/%d/%Y') if ro.date_in else '' }}</div>
   </div>
   <div class="info-box">
-    <div class="info-box-title">Vehicle / Machine Information</div>
-    {% if machine %}
-    <div class="info-row"><span class="info-label">Year/Make/Model:</span><span class="info-value">{{ machine.display_name }}</span></div>
-    <div class="info-row"><span class="info-label">Engine/CC:</span><span class="info-value">{{ machine.engine_cc or '' }}</span></div>
-    <div class="info-row"><span class="info-label">Color:</span><span class="info-value">{{ machine.color or '' }}</span></div>
-    <div class="info-row"><span class="info-label">VIN / Serial:</span><span class="info-value">{{ machine.vin or '' }}</span></div>
-    <div class="info-row"><span class="info-label">Odometer/Hrs:</span><span class="info-value">{{ machine.odometer_hours or '' }}</span></div>
-    {% else %}
-    <div class="info-row"><span class="info-label">Year/Make/Model:</span><span class="info-value">_________________________</span></div>
-    <div class="info-row"><span class="info-label">Engine/CC:</span><span class="info-value">_________________________</span></div>
-    <div class="info-row"><span class="info-label">Color:</span><span class="info-value">_________________________</span></div>
-    <div class="info-row"><span class="info-label">VIN / Serial:</span><span class="info-value">_________________________</span></div>
-    <div class="info-row"><span class="info-label">Odometer/Hrs:</span><span class="info-value">_________________________</span></div>
-    {% endif %}
+    <div class="info-box-title">Intake By</div>
+    <div style="font-size:9pt; font-weight:500; padding-top:2px;">{{ ro.technician or '' }}</div>
+  </div>
+  <div class="info-box">
+    <div class="info-box-title">Source</div>
+    <div style="font-size:9pt; padding-top:2px;">&nbsp;</div>
+  </div>
+  <div class="info-box">
+    <div class="info-box-title">RO #</div>
+    <div style="font-size:9pt; font-weight:500; padding-top:2px;">{{ ro.ro_number }}</div>
   </div>
 </div>
 
-<!-- Complaint -->
-<div class="section-heading">Reason for Visit / Customer Complaint</div>
-<div class="narrative-box">{{ ro.complaint or '' }}</div>
+<!-- Section 1: Customer Information -->
+<div class="section-heading">1. Customer Information</div>
+<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px;">
+  <div>
+    <div style="font-size:8pt; color:#666; margin-bottom:2px;">Full Name</div>
+    <div class="field-line">{{ customer.name }}</div>
+  </div>
+  <div>
+    <div style="font-size:8pt; color:#666; margin-bottom:2px;">Phone Number</div>
+    <div class="field-line">{{ customer.phone or '' }}</div>
+  </div>
+  <div>
+    <div style="font-size:8pt; color:#666; margin-bottom:2px;">Email Address</div>
+    <div class="field-line">{{ customer.email or '' }}</div>
+  </div>
+</div>
 
-<!-- Blank lines if no complaint -->
-{% if not ro.complaint %}
-<span class="narrative-lines"></span>
-<span class="narrative-lines"></span>
-<span class="narrative-lines"></span>
-{% endif %}
+<!-- Section 2: Machine Information -->
+<div class="section-heading">2. Machine Information</div>
+<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px;">
+  <div>
+    <div style="font-size:8pt; color:#666; margin-bottom:2px;">Year</div>
+    <div class="field-line">{% if machine %}{{ machine.year or '' }}{% endif %}</div>
+  </div>
+  <div>
+    <div style="font-size:8pt; color:#666; margin-bottom:2px;">Make</div>
+    <div class="field-line">{% if machine %}{{ machine.make or '' }}{% endif %}</div>
+  </div>
+  <div>
+    <div style="font-size:8pt; color:#666; margin-bottom:2px;">Model</div>
+    <div class="field-line">{% if machine %}{{ machine.model or '' }}{% endif %}</div>
+  </div>
+  <div>
+    <div style="font-size:8pt; color:#666; margin-bottom:2px;">Engine / CC</div>
+    <div class="field-line">{% if machine %}{{ machine.engine_cc or '' }}{% endif %}</div>
+  </div>
+  <div>
+    <div style="font-size:8pt; color:#666; margin-bottom:2px;">VIN / Serial Number</div>
+    <div class="field-line">{% if machine %}{{ machine.vin or '' }}{% endif %}</div>
+  </div>
+  <div>
+    <div style="font-size:8pt; color:#666; margin-bottom:2px;">Hours / Mileage</div>
+    <div class="field-line">{% if machine %}{{ machine.odometer_hours or '' }}{% endif %}</div>
+  </div>
+  <div style="grid-column: span 3;">
+    <div style="font-size:8pt; color:#666; margin-bottom:2px;">Color / Identifying Markings</div>
+    <div class="field-line">{% if machine %}{{ machine.color or '' }}{% endif %}</div>
+  </div>
+</div>
 
-<!-- Estimate Authorization -->
-<div class="section-heading">Estimate &amp; Authorization</div>
+<!-- Section 3: Machine History -->
+<div class="section-heading">3. Machine History</div>
+<div style="margin-bottom:12px; font-size:9pt;">
+  <div style="margin-bottom:6px;">How was the machine acquired?</div>
+  <div style="display:flex; gap:24px; margin-bottom:8px;">
+    <label>&#9633; New Purchase</label>
+    <label>&#9633; Used — Private Party</label>
+    <label>&#9633; Used — Dealer</label>
+    <label>&#9633; Inherited / Gift</label>
+  </div>
+  <div style="margin-bottom:6px;">Has anyone else worked on this machine recently? &nbsp; &#9633; Yes &nbsp;&nbsp; &#9633; No</div>
+  <div style="font-size:8pt; color:#666; margin-bottom:2px;">If yes — who and what was done:</div>
+  <div class="field-line" style="min-height:20px;">&nbsp;</div>
+</div>
+
+<!-- Section 4: Reason for Service -->
+<div class="section-heading">4. Reason for Service</div>
+<div style="margin-bottom:12px; font-size:9pt;">
+  <div style="margin-bottom:5px;">Type of service requested (check all that apply):</div>
+  <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:4px; margin-bottom:8px;">
+    <label>&#9633; Diagnostic / Unknown Issue</label>
+    <label>&#9633; Specific Repair</label>
+    <label>&#9633; Trail Ready Inspection</label>
+    <label>&#9633; Performance Upgrade</label>
+    <label>&#9633; Maintenance / Fluids</label>
+    <label>&#9633; Fabrication / Custom Work</label>
+  </div>
+  <div style="font-size:8pt; color:#666; margin-bottom:2px;">Describe the issue or requested work in detail:</div>
+  <div class="narrative-box">{{ ro.complaint or '' }}</div>
+</div>
+
+<!-- Section 5: Condition at Drop-off -->
+<div class="section-heading">5. Condition at Drop-Off</div>
+<div style="margin-bottom:12px; font-size:9pt;">
+  <div style="font-size:8pt; color:#666; margin-bottom:2px;">Note any pre-existing damage, missing parts, or known issues:</div>
+  <div class="narrative-box" style="min-height:40px;">&nbsp;</div>
+  <div style="display:flex; gap:8px; margin-top:4px; align-items:baseline;">
+    <span>Personal items in machine? &nbsp; &#9633; Yes &nbsp;&nbsp; &#9633; No</span>
+    <span style="color:#666; font-size:8pt;">&nbsp;&nbsp;If yes, list: _______________________________________________</span>
+  </div>
+</div>
+
+<!-- Section 6: Work Authorization -->
+<div class="section-heading">6. Work Authorization</div>
 <div class="waiver-text">
-  <p>I authorize Red Dirt UTV Performance to perform diagnostic work and provide an estimate for the above-described repairs. I understand that a diagnostic fee may apply and will be disclosed prior to teardown.</p>
-  <p>I authorize the repair work described herein to proceed. I agree that Red Dirt UTV Performance is not responsible for loss or damage to vehicles or articles left in vehicles in case of fire, theft, or any other cause beyond the shop's control.</p>
-  <p>By signing below, I acknowledge that I have read and agree to the terms above, and that all information provided is accurate.</p>
+  <p>I authorize Red Dirt UTV Performance LLC to perform the requested inspection and/or repairs on the described machine. I understand that a diagnostic assessment may be required before a final estimate is provided.</p>
+  <div style="display:flex; align-items:baseline; gap:6px; margin-bottom:8px; font-size:9pt;">
+    <strong>I authorize parts purchases up to (without additional approval): &nbsp; AMOUNT: $</strong>
+    <div style="border-bottom:1px solid #333; width:90px; display:inline-block;">&nbsp;</div>
+  </div>
+  <p style="font-size:8pt; color:#555;">Any amount above this requires verbal or written approval before work proceeds.</p>
+  <p>Red Dirt UTV Performance LLC is not responsible for pre-existing conditions, damage, or failures unrelated to the authorized work.</p>
 </div>
 
 <div class="sig-grid">
   <div class="sig-block">
-    <div class="sig-label">Customer Signature</div>
+    <div class="sig-label">Customer Signature — Authorizing Inspection / Repair</div>
     <div class="sig-line"></div>
     <div class="sig-sub-label">{{ customer.name }}</div>
-  </div>
-  <div class="sig-block">
-    <div class="sig-label">Date</div>
-    <div class="sig-line"></div>
-    <div class="sig-sub-label">&nbsp;</div>
-  </div>
-  <div class="sig-block">
-    <div class="sig-label">Received By (Shop)</div>
-    <div class="sig-line"></div>
-    <div class="sig-sub-label">Red Dirt UTV Performance</div>
   </div>
   <div class="sig-block">
     <div class="sig-label">Date</div>
