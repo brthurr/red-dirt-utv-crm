@@ -1,0 +1,153 @@
+{% extends "pdf/pdf_base.html" %}
+{% block footer_ro %}{{ ro.ro_number }}{% endblock %}
+
+{% block pdf_content %}
+<div class="pdf-header">
+  <div>
+    <div class="shop-name">{{ shop_name }}</div>
+    <div class="shop-tagline">UTV Performance &amp; Repair</div>
+  </div>
+  <div class="shop-contact">
+    {{ shop_address }}<br/>
+    {% if shop_phone %}{{ shop_phone }}<br/>{% endif %}
+    {% if shop_email %}{{ shop_email }}{% endif %}
+  </div>
+</div>
+
+<div class="doc-title-block">
+  <div class="doc-title">Repair Order</div>
+</div>
+<div style="text-align:center; margin-bottom:12px;">
+  <span class="ro-badge">RO# {{ ro.ro_number }}</span>
+  &nbsp;&nbsp;
+  <strong>Date In:</strong> {{ ro.date_in.strftime('%m/%d/%Y') if ro.date_in else '—' }}
+  &nbsp;&nbsp;
+  <strong>Date Out:</strong> {{ ro.date_out.strftime('%m/%d/%Y') if ro.date_out else '—' }}
+  &nbsp;&nbsp;
+  <strong>Status:</strong> {{ ro.status }}
+</div>
+
+<!-- Customer + Machine -->
+<div class="info-grid">
+  <div class="info-box">
+    <div class="info-box-title">Customer</div>
+    <div class="info-row"><span class="info-label">Name:</span><span class="info-value">{{ customer.name }}</span></div>
+    <div class="info-row"><span class="info-label">Phone:</span><span class="info-value">{{ customer.phone or '' }}</span></div>
+    <div class="info-row"><span class="info-label">Email:</span><span class="info-value">{{ customer.email or '' }}</span></div>
+    <div class="info-row"><span class="info-label">Address:</span><span class="info-value">{{ customer.full_address or '' }}</span></div>
+  </div>
+  <div class="info-box">
+    <div class="info-box-title">Vehicle</div>
+    {% if machine %}
+    <div class="info-row"><span class="info-label">Year/Make/Model:</span><span class="info-value">{{ machine.display_name }}</span></div>
+    <div class="info-row"><span class="info-label">Engine/CC:</span><span class="info-value">{{ machine.engine_cc or '' }}</span></div>
+    <div class="info-row"><span class="info-label">Color:</span><span class="info-value">{{ machine.color or '' }}</span></div>
+    <div class="info-row"><span class="info-label">VIN / Serial:</span><span class="info-value">{{ machine.vin or '' }}</span></div>
+    <div class="info-row"><span class="info-label">Odometer/Hrs:</span><span class="info-value">{{ machine.odometer_hours or '' }}</span></div>
+    {% endif %}
+    <div class="info-row"><span class="info-label">Technician:</span><span class="info-value">{{ ro.technician or '' }}</span></div>
+  </div>
+</div>
+
+<!-- Complaint -->
+<div class="section-heading">Customer Complaint</div>
+<div class="narrative-box">{{ ro.complaint or '—' }}</div>
+
+<!-- Work Performed -->
+<div class="section-heading">Work Performed</div>
+<div class="narrative-box">{{ ro.work_performed or '—' }}</div>
+
+<!-- Parts -->
+{% set parts = ro.line_items|selectattr('item_type', 'equalto', 'part')|list %}
+{% if parts %}
+<div class="section-heading">Parts</div>
+<table>
+  <thead>
+    <tr>
+      <th>Description</th>
+      <th>Cust. Supplied</th>
+      <th class="right">Qty</th>
+      <th class="right">Unit Price</th>
+      <th class="right">Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in parts %}
+    <tr>
+      <td>{{ item.description }}</td>
+      <td>{% if item.customer_supplied %}Yes{% else %}—{% endif %}</td>
+      <td class="right">{{ item.quantity }}</td>
+      <td class="right">${{ '%.2f'|format(item.unit_price|float) }}</td>
+      <td class="right">${{ '%.2f'|format(item.line_total|float) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+<!-- Labor -->
+{% set labor = ro.line_items|selectattr('item_type', 'equalto', 'labor')|list %}
+{% if labor %}
+<div class="section-heading">Labor</div>
+<table>
+  <thead>
+    <tr>
+      <th>Description</th>
+      <th class="right">Hours</th>
+      <th class="right">Rate/Hr</th>
+      <th class="right">Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in labor %}
+    <tr>
+      <td>{{ item.description }}</td>
+      <td class="right">{{ item.quantity }}</td>
+      <td class="right">${{ '%.2f'|format(item.unit_price|float) }}</td>
+      <td class="right">${{ '%.2f'|format(item.line_total|float) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+<!-- Totals -->
+<table class="totals-table">
+  <tbody>
+    <tr><td class="total-label">Parts Subtotal</td><td class="total-value">${{ '%.2f'|format(ro.parts_total|float) }}</td></tr>
+    <tr><td class="total-label">Labor Subtotal</td><td class="total-value">${{ '%.2f'|format(ro.labor_total|float) }}</td></tr>
+    <tr><td class="total-label">Subtotal</td><td class="total-value">${{ '%.2f'|format(ro.subtotal) }}</td></tr>
+    <tr><td class="total-label">Tax ({{ '%.2f'|format((ro.tax_rate|float)*100) }}%)</td><td class="total-value">${{ '%.2f'|format(ro.tax_amount) }}</td></tr>
+    <tr class="grand-row"><td class="total-label">TOTAL DUE</td><td class="total-value">${{ '%.2f'|format(ro.grand_total|float) }}</td></tr>
+  </tbody>
+</table>
+
+<!-- Customer-supplied note -->
+{% if ro.has_customer_parts %}
+<p style="font-size:8pt; color:#9B1C1C; margin-bottom:10px;">
+  &#9888; Customer-supplied parts used in this repair. See Customer-Supplied Parts Waiver.
+</p>
+{% endif %}
+
+<!-- Signatures -->
+<div class="sig-grid">
+  <div class="sig-block">
+    <div class="sig-label">Customer Signature — Authorization</div>
+    <div class="sig-line"></div>
+    <div class="sig-sub-label">{{ customer.name }}</div>
+  </div>
+  <div class="sig-block">
+    <div class="sig-label">Date</div>
+    <div class="sig-line"></div>
+  </div>
+  <div class="sig-block">
+    <div class="sig-label">Technician Signature</div>
+    <div class="sig-line"></div>
+    <div class="sig-sub-label">{{ ro.technician or 'Red Dirt UTV Performance' }}</div>
+  </div>
+  <div class="sig-block">
+    <div class="sig-label">Date</div>
+    <div class="sig-line"></div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} — Red Dirt UTV{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2 class="page-title">{{ title }}</h2>
+  {% if machine %}
+  <a href="{{ url_for('customers.view_customer', customer_id=machine.customer_id) }}" class="btn btn-ghost">Cancel</a>
+  {% elif customer %}
+  <a href="{{ url_for('customers.view_customer', customer_id=customer.id) }}" class="btn btn-ghost">Cancel</a>
+  {% endif %}
+</div>
+
+{% if intake %}
+<div class="intake-steps">
+  <div class="step done">1. Customer Info</div>
+  <div class="step active">2. Machine Info</div>
+  <div class="step">3. Repair Order</div>
+</div>
+{% endif %}
+
+<form method="POST"
+  action="{% if machine %}{{ url_for('machines.edit_machine', machine_id=machine.id) }}{% else %}{{ url_for('machines.create_machine') }}{% endif %}"
+  class="card-form">
+
+  {% if not machine %}
+  <input type="hidden" name="customer_id" value="{{ customer.id if customer else '' }}" />
+  <input type="hidden" name="intake" value="{{ intake }}" />
+  {% endif %}
+
+  <div class="form-section">
+    {% if not machine and not customer %}
+    <div class="form-group">
+      <label class="form-label" for="customer_id">Customer <span class="required">*</span></label>
+      <select id="customer_id" name="customer_id" class="form-input form-select" required>
+        <option value="">— Select Customer —</option>
+        {% for c in customers %}
+        <option value="{{ c.id }}">{{ c.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% else %}
+    <p class="context-label">Customer: <strong>{{ customer.name }}</strong></p>
+    {% endif %}
+
+    <h3 class="form-section-title">Machine Details</h3>
+    <div class="form-grid-3">
+      <div class="form-group">
+        <label class="form-label" for="year">Year</label>
+        <input type="text" id="year" name="year" class="form-input"
+               value="{{ machine.year if machine else '' }}" placeholder="2022" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="make">Make</label>
+        <input type="text" id="make" name="make" class="form-input"
+               value="{{ machine.make if machine else '' }}" placeholder="Can-Am" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="model">Model</label>
+        <input type="text" id="model" name="model" class="form-input"
+               value="{{ machine.model if machine else '' }}" placeholder="Maverick X3" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="engine_cc">Engine / CC</label>
+        <input type="text" id="engine_cc" name="engine_cc" class="form-input"
+               value="{{ machine.engine_cc if machine else '' }}" placeholder="900cc Turbo" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="color">Color</label>
+        <input type="text" id="color" name="color" class="form-input"
+               value="{{ machine.color if machine else '' }}" placeholder="Black" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="odometer_hours">Odometer / Hours</label>
+        <input type="text" id="odometer_hours" name="odometer_hours" class="form-input"
+               value="{{ machine.odometer_hours if machine else '' }}" placeholder="1,250 mi" />
+      </div>
+      <div class="form-group span-3">
+        <label class="form-label" for="vin">VIN / Serial #</label>
+        <input type="text" id="vin" name="vin" class="form-input"
+               value="{{ machine.vin if machine else '' }}" />
+      </div>
+      <div class="form-group span-3">
+        <label class="form-label" for="notes">Notes</label>
+        <textarea id="notes" name="notes" class="form-input form-textarea" rows="2">{{ machine.notes if machine else '' }}</textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-actions">
+    {% if machine %}
+    <button type="submit" class="btn btn-primary">Save Changes</button>
+    {% elif intake %}
+    <button type="submit" name="continue_to_ro" value="1" class="btn btn-primary">Save &amp; Open RO →</button>
+    <button type="submit" class="btn btn-outline">Save Machine Only</button>
+    {% else %}
+    <button type="submit" class="btn btn-primary">Save Machine</button>
+    {% endif %}
+  </div>
+</form>
+{% endblock %}

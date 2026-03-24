@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block title %}{{ ro.ro_number }} — Red Dirt UTV{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h2 class="page-title">{{ ro.ro_number }}</h2>
+    <p class="page-sub">{{ ro.customer.name }}
+      {% if ro.machine %} &bull; {{ ro.machine.display_name }}{% endif %}
+    </p>
+  </div>
+  <div class="header-actions">
+    <a href="{{ url_for('repair_orders.edit_ro', ro_id=ro.id) }}" class="btn btn-outline">Edit RO</a>
+    <div class="dropdown">
+      <button class="btn btn-primary dropdown-toggle" id="pdfDropdown">&#x1F4C4; Print / PDF</button>
+      <div class="dropdown-menu" id="pdfMenu">
+        <a href="{{ url_for('repair_orders.pdf', ro_id=ro.id, doc_type='intake') }}" target="_blank" class="dropdown-item">Customer Intake Form</a>
+        <a href="{{ url_for('repair_orders.pdf', ro_id=ro.id, doc_type='repair_order') }}" target="_blank" class="dropdown-item">Repair Order</a>
+        <a href="{{ url_for('repair_orders.pdf', ro_id=ro.id, doc_type='parts_waiver') }}" target="_blank" class="dropdown-item">Customer Parts Waiver</a>
+        <a href="{{ url_for('repair_orders.pdf', ro_id=ro.id, doc_type='vehicle_release') }}" target="_blank" class="dropdown-item">Vehicle Release Form</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Status update bar -->
+<div class="status-bar">
+  <span class="badge badge-{{ ro.status|lower|replace(' ', '-') }} badge-lg">{{ ro.status }}</span>
+  <form method="POST" action="{{ url_for('repair_orders.update_status', ro_id=ro.id) }}" class="inline-form">
+    <select name="status" class="form-input form-select select-sm">
+      {% for s in ['Draft','Open','In Progress','Complete','Delivered'] %}
+      <option value="{{ s }}" {% if s == ro.status %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-sm btn-outline">Update Status</button>
+  </form>
+</div>
+
+<!-- RO Details grid -->
+<div class="detail-grid">
+  <!-- Customer + Machine -->
+  <div class="detail-card">
+    <h3 class="detail-card-title">Customer</h3>
+    <dl class="detail-list">
+      <dt>Name</dt><dd><a href="{{ url_for('customers.view_customer', customer_id=ro.customer.id) }}" class="link-accent">{{ ro.customer.name }}</a></dd>
+      <dt>Phone</dt><dd>{{ ro.customer.phone or '—' }}</dd>
+      <dt>Email</dt><dd>{{ ro.customer.email or '—' }}</dd>
+      <dt>Address</dt><dd>{{ ro.customer.full_address or '—' }}</dd>
+    </dl>
+  </div>
+
+  <div class="detail-card">
+    <h3 class="detail-card-title">Machine</h3>
+    {% if ro.machine %}
+    <dl class="detail-list">
+      <dt>Vehicle</dt><dd>{{ ro.machine.display_name }}</dd>
+      <dt>VIN</dt><dd>{{ ro.machine.vin or '—' }}</dd>
+      <dt>Engine</dt><dd>{{ ro.machine.engine_cc or '—' }}</dd>
+      <dt>Color</dt><dd>{{ ro.machine.color or '—' }}</dd>
+      <dt>Odometer/Hrs</dt><dd>{{ ro.machine.odometer_hours or '—' }}</dd>
+    </dl>
+    {% else %}
+    <p class="empty-state-sm">No machine linked.</p>
+    {% endif %}
+  </div>
+
+  <div class="detail-card">
+    <h3 class="detail-card-title">RO Info</h3>
+    <dl class="detail-list">
+      <dt>RO #</dt><dd>{{ ro.ro_number }}</dd>
+      <dt>Date In</dt><dd>{{ ro.date_in.strftime('%m/%d/%Y') if ro.date_in else '—' }}</dd>
+      <dt>Date Out</dt><dd>{{ ro.date_out.strftime('%m/%d/%Y') if ro.date_out else '—' }}</dd>
+      <dt>Technician</dt><dd>{{ ro.technician or '—' }}</dd>
+    </dl>
+  </div>
+</div>
+
+<!-- Complaint & Work -->
+<div class="detail-grid">
+  <div class="detail-card">
+    <h3 class="detail-card-title">Customer Complaint</h3>
+    <p class="narrative-text">{{ ro.complaint or 'Not recorded.' }}</p>
+  </div>
+  <div class="detail-card">
+    <h3 class="detail-card-title">Work Performed</h3>
+    <p class="narrative-text">{{ ro.work_performed or 'Not recorded.' }}</p>
+  </div>
+</div>
+
+<!-- Line Items -->
+<section class="section">
+  <h3 class="section-title">Parts</h3>
+  {% set parts = ro.line_items|selectattr('item_type', 'equalto', 'part')|list %}
+  {% if parts %}
+  <div class="table-wrapper">
+    <table class="data-table">
+      <thead>
+        <tr><th>Description</th><th>Cust. Supplied</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr>
+      </thead>
+      <tbody>
+        {% for item in parts %}
+        <tr>
+          <td>{{ item.description }}</td>
+          <td>{% if item.customer_supplied %}<span class="badge badge-warning">Yes</span>{% else %}—{% endif %}</td>
+          <td>{{ item.quantity }}</td>
+          <td>${{ '%.2f'|format(item.unit_price|float) }}</td>
+          <td>${{ '%.2f'|format(item.line_total|float) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="empty-state-sm">No parts added.</p>
+  {% endif %}
+</section>
+
+<section class="section">
+  <h3 class="section-title">Labor</h3>
+  {% set labor = ro.line_items|selectattr('item_type', 'equalto', 'labor')|list %}
+  {% if labor %}
+  <div class="table-wrapper">
+    <table class="data-table">
+      <thead>
+        <tr><th>Description</th><th>Hours</th><th>Rate</th><th>Total</th></tr>
+      </thead>
+      <tbody>
+        {% for item in labor %}
+        <tr>
+          <td>{{ item.description }}</td>
+          <td>{{ item.quantity }}</td>
+          <td>${{ '%.2f'|format(item.unit_price|float) }}</td>
+          <td>${{ '%.2f'|format(item.line_total|float) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="empty-state-sm">No labor added.</p>
+  {% endif %}
+</section>
+
+<!-- Totals -->
+<div class="totals-card">
+  <div class="totals-row"><span>Parts Subtotal</span><span>${{ '%.2f'|format(ro.parts_total|float) }}</span></div>
+  <div class="totals-row"><span>Labor Subtotal</span><span>${{ '%.2f'|format(ro.labor_total|float) }}</span></div>
+  <div class="totals-row"><span>Subtotal</span><span>${{ '%.2f'|format(ro.subtotal) }}</span></div>
+  <div class="totals-row"><span>Tax ({{ '%.2f'|format((ro.tax_rate|float)*100) }}%)</span><span>${{ '%.2f'|format(ro.tax_amount) }}</span></div>
+  <div class="totals-row totals-grand"><span>Grand Total</span><span>${{ '%.2f'|format(ro.grand_total|float) }}</span></div>
+</div>
+
+<!-- Customer-supplied parts note -->
+{% if ro.has_customer_parts %}
+<div class="alert alert-warning">
+  <strong>Customer-Supplied Parts:</strong> {{ ro.customer_parts_notes or 'Customer provided parts for this repair.' }}
+</div>
+{% endif %}
+
+<!-- Delete -->
+<div class="danger-zone">
+  <h4 class="danger-title">Danger Zone</h4>
+  <form method="POST" action="{{ url_for('repair_orders.delete_ro', ro_id=ro.id) }}"
+        onsubmit="return confirm('Delete {{ ro.ro_number }}?');">
+    <button type="submit" class="btn btn-danger">Delete RO</button>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // PDF dropdown toggle
+  const toggle = document.getElementById('pdfDropdown');
+  const menu = document.getElementById('pdfMenu');
+  toggle.addEventListener('click', function(e) {
+    e.stopPropagation();
+    menu.classList.toggle('open');
+  });
+  document.addEventListener('click', function() { menu.classList.remove('open'); });
+</script>
+{% endblock %}

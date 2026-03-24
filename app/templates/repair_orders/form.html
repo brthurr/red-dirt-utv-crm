@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} — Red Dirt UTV{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2 class="page-title">{{ title }}</h2>
+  {% if ro %}
+  <a href="{{ url_for('repair_orders.view_ro', ro_id=ro.id) }}" class="btn btn-ghost">Cancel</a>
+  {% else %}
+  <a href="{{ url_for('repair_orders.list_ros') }}" class="btn btn-ghost">Cancel</a>
+  {% endif %}
+</div>
+
+{% if intake %}
+<div class="intake-steps">
+  <div class="step done">1. Customer Info</div>
+  <div class="step done">2. Machine Info</div>
+  <div class="step active">3. Repair Order</div>
+</div>
+{% endif %}
+
+<form method="POST"
+  action="{% if ro %}{{ url_for('repair_orders.edit_ro', ro_id=ro.id) }}{% else %}{{ url_for('repair_orders.new_ro') }}{% endif %}"
+  class="card-form" id="roForm">
+
+  <!-- Customer + Machine selection -->
+  <div class="form-section">
+    <h3 class="form-section-title">Customer &amp; Machine</h3>
+
+    {% if not ro %}
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label class="form-label" for="customer_id">Customer <span class="required">*</span></label>
+        <select id="customer_id" name="customer_id" class="form-input form-select" required>
+          <option value="">— Select Customer —</option>
+          {% for c in customers %}
+          <option value="{{ c.id }}" {% if customer and c.id == customer.id %}selected{% endif %}>{{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="machine_id">Machine</label>
+        <select id="machine_id" name="machine_id" class="form-input form-select">
+          <option value="">— Select Machine —</option>
+          {% for m in machines %}
+          <option value="{{ m.id }}" {% if machine and m.id == machine.id %}selected{% endif %}>{{ m.display_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    {% else %}
+    <p class="context-label">
+      Customer: <strong><a href="{{ url_for('customers.view_customer', customer_id=ro.customer.id) }}" class="link-accent">{{ ro.customer.name }}</a></strong>
+      {% if ro.machine %} &bull; Machine: <strong>{{ ro.machine.display_name }}</strong>{% endif %}
+    </p>
+    <!-- Hidden machine_id for edit -->
+    <input type="hidden" name="machine_id" value="{{ ro.machine_id or '' }}" />
+    {% endif %}
+  </div>
+
+  <!-- RO Header -->
+  <div class="form-section">
+    <h3 class="form-section-title">RO Details</h3>
+    <div class="form-grid-3">
+      <div class="form-group">
+        <label class="form-label" for="date_in">Date In</label>
+        <input type="date" id="date_in" name="date_in" class="form-input"
+               value="{{ ro.date_in.isoformat() if ro and ro.date_in else today }}" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="date_out">Date Out</label>
+        <input type="date" id="date_out" name="date_out" class="form-input"
+               value="{{ ro.date_out.isoformat() if ro and ro.date_out else '' }}" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="status">Status</label>
+        <select id="status" name="status" class="form-input form-select">
+          {% for s in statuses %}
+          <option value="{{ s }}" {% if ro and s == ro.status %}selected{% elif not ro and s == 'Open' %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="technician">Technician</label>
+        <input type="text" id="technician" name="technician" class="form-input"
+               value="{{ ro.technician if ro else '' }}" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="tax_rate">Tax Rate (%)</label>
+        <input type="number" id="tax_rate" name="tax_rate" class="form-input"
+               step="0.01" min="0" max="20"
+               value="{{ '%.2f'|format((ro.tax_rate|float)*100) if ro else '8.25' }}" />
+      </div>
+    </div>
+
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label class="form-label" for="complaint">Customer Complaint / Reason for Visit</label>
+        <textarea id="complaint" name="complaint" class="form-input form-textarea" rows="4">{{ ro.complaint if ro else '' }}</textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="work_performed">Work Performed / Tech Notes</label>
+        <textarea id="work_performed" name="work_performed" class="form-input form-textarea" rows="4">{{ ro.work_performed if ro else '' }}</textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Parts Line Items -->
+  <div class="form-section">
+    <div class="section-header">
+      <h3 class="form-section-title">Parts</h3>
+      <button type="button" class="btn btn-sm btn-outline" id="addPartBtn">+ Add Part</button>
+    </div>
+    <div class="table-wrapper">
+      <table class="data-table line-item-table" id="partsTable">
+        <thead>
+          <tr>
+            <th class="col-desc">Description</th>
+            <th class="col-cust">Cust. Supplied</th>
+            <th class="col-qty">Qty</th>
+            <th class="col-price">Unit Price</th>
+            <th class="col-total">Total</th>
+            <th class="col-del"></th>
+          </tr>
+        </thead>
+        <tbody id="partRows">
+          {% if ro %}
+          {% for item in ro.line_items if item.item_type == 'part' %}
+          <tr class="line-row">
+            <td><input type="hidden" name="item_type[]" value="part" /><input type="text" name="item_desc[]" value="{{ item.description }}" class="form-input input-inline" required /></td>
+            <td class="td-center"><input type="checkbox" name="item_customer_supplied[]" value="{{ loop.index0 }}" {% if item.customer_supplied %}checked{% endif %} class="checkbox-supplied" /></td>
+            <td><input type="number" name="item_qty[]" value="{{ item.quantity }}" class="form-input input-inline input-sm" step="0.01" min="0" /></td>
+            <td><input type="number" name="item_price[]" value="{{ item.unit_price }}" class="form-input input-inline input-sm" step="0.01" min="0" /></td>
+            <td class="line-total">${{ '%.2f'|format(item.line_total|float) }}</td>
+            <td><button type="button" class="btn btn-sm btn-danger-ghost remove-row">✕</button></td>
+          </tr>
+          {% endfor %}
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Labor Line Items -->
+  <div class="form-section">
+    <div class="section-header">
+      <h3 class="form-section-title">Labor</h3>
+      <button type="button" class="btn btn-sm btn-outline" id="addLaborBtn">+ Add Labor</button>
+    </div>
+    <div class="table-wrapper">
+      <table class="data-table line-item-table" id="laborTable">
+        <thead>
+          <tr>
+            <th class="col-desc">Description</th>
+            <th class="col-cust"></th>
+            <th class="col-qty">Hours</th>
+            <th class="col-price">Rate/Hr</th>
+            <th class="col-total">Total</th>
+            <th class="col-del"></th>
+          </tr>
+        </thead>
+        <tbody id="laborRows">
+          {% if ro %}
+          {% for item in ro.line_items if item.item_type == 'labor' %}
+          <tr class="line-row">
+            <td><input type="hidden" name="item_type[]" value="labor" /><input type="text" name="item_desc[]" value="{{ item.description }}" class="form-input input-inline" required /></td>
+            <td></td>
+            <td><input type="number" name="item_qty[]" value="{{ item.quantity }}" class="form-input input-inline input-sm" step="0.25" min="0" /></td>
+            <td><input type="number" name="item_price[]" value="{{ item.unit_price }}" class="form-input input-inline input-sm" step="0.01" min="0" /></td>
+            <td class="line-total">${{ '%.2f'|format(item.line_total|float) }}</td>
+            <td><button type="button" class="btn btn-sm btn-danger-ghost remove-row">✕</button></td>
+          </tr>
+          {% endfor %}
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Customer-supplied parts -->
+  <div class="form-section">
+    <div class="form-group form-check-group">
+      <input type="checkbox" id="has_customer_parts" name="has_customer_parts"
+             {% if ro and ro.has_customer_parts %}checked{% endif %} />
+      <label for="has_customer_parts" class="form-label-inline">Customer supplied parts for this repair</label>
+    </div>
+    <div class="form-group" id="customerPartsNotesGroup" {% if not ro or not ro.has_customer_parts %}style="display:none"{% endif %}>
+      <label class="form-label" for="customer_parts_notes">Customer Parts Notes</label>
+      <textarea id="customer_parts_notes" name="customer_parts_notes" class="form-input form-textarea" rows="2">{{ ro.customer_parts_notes if ro else '' }}</textarea>
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">Save Repair Order</button>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Today's date for default
+const todayStr = new Date().toISOString().split('T')[0];
+const dateInField = document.getElementById('date_in');
+if (dateInField && !dateInField.value) dateInField.value = todayStr;
+
+// Customer/machine AJAX
+const custSelect = document.getElementById('customer_id');
+const machineSelect = document.getElementById('machine_id');
+if (custSelect && machineSelect) {
+  custSelect.addEventListener('change', function() {
+    const cid = this.value;
+    if (!cid) { machineSelect.innerHTML = '<option value="">— Select Machine —</option>'; return; }
+    fetch(`/ro/api/machines_for_customer?customer_id=${cid}`)
+      .then(r => r.json())
+      .then(data => {
+        machineSelect.innerHTML = '<option value="">— Select Machine —</option>';
+        data.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.id;
+          opt.textContent = m.display;
+          machineSelect.appendChild(opt);
+        });
+      });
+  });
+}
+
+// Row counter for unique checkbox values
+let rowCounter = document.querySelectorAll('.line-row').length;
+
+function makeRow(type) {
+  const tr = document.createElement('tr');
+  tr.className = 'line-row';
+  const isLabor = type === 'labor';
+  const custCell = isLabor ? '<td></td>' : `<td class="td-center"><input type="checkbox" name="item_customer_supplied[]" value="${rowCounter}" class="checkbox-supplied" /></td>`;
+  tr.innerHTML = `
+    <td>
+      <input type="hidden" name="item_type[]" value="${type}" />
+      <input type="text" name="item_desc[]" class="form-input input-inline" placeholder="Description" required />
+    </td>
+    ${custCell}
+    <td><input type="number" name="item_qty[]" value="1" class="form-input input-inline input-sm" step="${isLabor ? '0.25' : '0.01'}" min="0" /></td>
+    <td><input type="number" name="item_price[]" value="0.00" class="form-input input-inline input-sm" step="0.01" min="0" /></td>
+    <td class="line-total">$0.00</td>
+    <td><button type="button" class="btn btn-sm btn-danger-ghost remove-row">✕</button></td>
+  `;
+  rowCounter++;
+  return tr;
+}
+
+document.getElementById('addPartBtn').addEventListener('click', function() {
+  document.getElementById('partRows').appendChild(makeRow('part'));
+});
+document.getElementById('addLaborBtn').addEventListener('click', function() {
+  document.getElementById('laborRows').appendChild(makeRow('labor'));
+});
+
+// Remove row
+document.getElementById('roForm').addEventListener('click', function(e) {
+  if (e.target.classList.contains('remove-row')) {
+    e.target.closest('tr').remove();
+  }
+});
+
+// Live line total calculation
+document.getElementById('roForm').addEventListener('input', function(e) {
+  const row = e.target.closest('.line-row');
+  if (!row) return;
+  const qty = parseFloat(row.querySelector('[name="item_qty[]"]')?.value) || 0;
+  const price = parseFloat(row.querySelector('[name="item_price[]"]')?.value) || 0;
+  const totalCell = row.querySelector('.line-total');
+  if (totalCell) totalCell.textContent = '$' + (qty * price).toFixed(2);
+});
+
+// Toggle customer parts notes
+document.getElementById('has_customer_parts').addEventListener('change', function() {
+  document.getElementById('customerPartsNotesGroup').style.display = this.checked ? '' : 'none';
+});
+</script>
+{% endblock %}

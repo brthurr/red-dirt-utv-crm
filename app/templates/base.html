@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Red Dirt UTV Performance{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav class="navbar">
+    <a class="navbar-brand" href="{{ url_for('main.dashboard') }}">
+      <span class="brand-icon">⚙</span>
+      <span class="brand-text">Red Dirt UTV</span>
+    </a>
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">&#9776;</button>
+    <div class="nav-links" id="navLinks">
+      <a href="{{ url_for('main.dashboard') }}" class="nav-link {% if request.endpoint == 'main.dashboard' %}active{% endif %}">Dashboard</a>
+      <a href="{{ url_for('repair_orders.list_ros') }}" class="nav-link {% if request.blueprint == 'repair_orders' %}active{% endif %}">Repair Orders</a>
+      <a href="{{ url_for('customers.list_customers') }}" class="nav-link {% if request.blueprint == 'customers' %}active{% endif %}">Customers</a>
+      <a href="{{ url_for('customers.new_customer') }}" class="nav-link btn-nav-cta">+ New Intake</a>
+      <a href="{{ url_for('auth.logout') }}" class="nav-link nav-logout">Logout</a>
+    </div>
+  </nav>
+
+  <!-- Flash messages -->
+  <div class="flash-container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+  </div>
+
+  <!-- Main content -->
+  <main class="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <p>Red Dirt UTV Performance &mdash; Waller, TX</p>
+  </footer>
+
+  <script>
+    // Mobile nav toggle
+    document.getElementById('navToggle').addEventListener('click', function() {
+      document.getElementById('navLinks').classList.toggle('open');
+    });
+
+    // Auto-dismiss flash messages
+    setTimeout(function() {
+      document.querySelectorAll('.flash').forEach(function(el) {
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 400);
+      });
+    }, 4000);
+  </script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

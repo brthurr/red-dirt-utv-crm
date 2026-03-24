@@ -1,0 +1,101 @@
+{% extends "pdf/pdf_base.html" %}
+{% block footer_ro %}{{ ro.ro_number }}{% endblock %}
+
+{% block pdf_content %}
+<div class="pdf-header">
+  <div>
+    <div class="shop-name">{{ shop_name }}</div>
+    <div class="shop-tagline">UTV Performance &amp; Repair</div>
+  </div>
+  <div class="shop-contact">
+    {{ shop_address }}<br/>
+    {% if shop_phone %}{{ shop_phone }}<br/>{% endif %}
+    {% if shop_email %}{{ shop_email }}{% endif %}
+  </div>
+</div>
+
+<div class="doc-title-block">
+  <div class="doc-title">Customer-Supplied Parts Waiver</div>
+  <div class="doc-subtitle">Please read carefully before signing</div>
+</div>
+<div style="text-align:center; margin-bottom:12px;">
+  <span class="ro-badge">RO# {{ ro.ro_number }}</span>
+  &nbsp;&nbsp;
+  <strong>Date:</strong> {{ ro.date_in.strftime('%m/%d/%Y') if ro.date_in else '___________' }}
+</div>
+
+<!-- Customer + Machine -->
+<div class="info-grid">
+  <div class="info-box">
+    <div class="info-box-title">Customer</div>
+    <div class="info-row"><span class="info-label">Name:</span><span class="info-value">{{ customer.name }}</span></div>
+    <div class="info-row"><span class="info-label">Phone:</span><span class="info-value">{{ customer.phone or '' }}</span></div>
+    <div class="info-row"><span class="info-label">Email:</span><span class="info-value">{{ customer.email or '' }}</span></div>
+  </div>
+  <div class="info-box">
+    <div class="info-box-title">Vehicle</div>
+    {% if machine %}
+    <div class="info-row"><span class="info-label">Year/Make/Model:</span><span class="info-value">{{ machine.display_name }}</span></div>
+    <div class="info-row"><span class="info-label">VIN / Serial:</span><span class="info-value">{{ machine.vin or '' }}</span></div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Parts List -->
+<div class="section-heading">Customer-Supplied Parts</div>
+{% set supplied_parts = ro.line_items|selectattr('customer_supplied')|list %}
+{% if supplied_parts %}
+<table>
+  <thead>
+    <tr><th>Part Description</th></tr>
+  </thead>
+  <tbody>
+    {% for item in supplied_parts %}
+    <tr><td>{{ item.description }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="narrative-box">{{ ro.customer_parts_notes or '(See repair order for details)' }}</div>
+{% endif %}
+
+<!-- Waiver Text -->
+<div class="section-heading">Waiver &amp; Release of Liability</div>
+<div class="waiver-text">
+  <p>I, the undersigned, hereby acknowledge that I am providing parts and/or materials ("Customer-Supplied Parts") to Red Dirt UTV Performance ("Shop") for use in the service and/or repair of my vehicle described above.</p>
+
+  <p><strong>I understand and agree to the following:</strong></p>
+
+  <p><strong>1. No Warranty on Customer-Supplied Parts.</strong> The Shop does not warranty, guarantee, or make any representations regarding the quality, fitment, performance, or merchantability of any Customer-Supplied Parts. Any warranty claims for such parts must be directed to the original manufacturer or seller.</p>
+
+  <p><strong>2. Risk of Failure.</strong> Customer-Supplied Parts may not meet manufacturer specifications. The Shop accepts no responsibility for any damage to the vehicle, other parts, or property resulting from the use, failure, or improper fitment of Customer-Supplied Parts.</p>
+
+  <p><strong>3. Labor Charges.</strong> In the event that Customer-Supplied Parts fail, are defective, or require replacement, I agree to pay all additional labor charges associated with removal, re-installation, and any related repairs.</p>
+
+  <p><strong>4. Indemnification.</strong> I agree to indemnify, defend, and hold harmless Red Dirt UTV Performance, its owners, employees, and agents from any claims, damages, costs, or expenses arising from the use of Customer-Supplied Parts.</p>
+
+  <p><strong>5. Authorization.</strong> By signing below, I authorize the Shop to proceed with the installation of the Customer-Supplied Parts listed above and acknowledge that I have read, understand, and accept all terms of this waiver.</p>
+</div>
+
+<div class="sig-grid">
+  <div class="sig-block">
+    <div class="sig-label">Customer Signature</div>
+    <div class="sig-line"></div>
+    <div class="sig-sub-label">{{ customer.name }}</div>
+  </div>
+  <div class="sig-block">
+    <div class="sig-label">Date</div>
+    <div class="sig-line"></div>
+  </div>
+  <div class="sig-block">
+    <div class="sig-label">Print Name</div>
+    <div class="sig-line"></div>
+    <div class="sig-sub-label">&nbsp;</div>
+  </div>
+  <div class="sig-block">
+    <div class="sig-label">Shop Representative</div>
+    <div class="sig-line"></div>
+    <div class="sig-sub-label">Red Dirt UTV Performance</div>
+  </div>
+</div>
+{% endblock %}

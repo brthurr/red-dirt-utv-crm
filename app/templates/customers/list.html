@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Customers — Red Dirt UTV{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2 class="page-title">Customers</h2>
+  <a href="{{ url_for('customers.new_customer') }}" class="btn btn-primary">+ New Customer</a>
+</div>
+
+<form class="search-bar" method="GET">
+  <input type="text" name="q" value="{{ q }}" placeholder="Search by name…" class="form-input search-input" />
+  <button type="submit" class="btn btn-outline">Search</button>
+  {% if q %}<a href="{{ url_for('customers.list_customers') }}" class="btn btn-ghost">Clear</a>{% endif %}
+</form>
+
+{% if customers %}
+<div class="table-wrapper">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Phone</th>
+        <th>Email</th>
+        <th>City</th>
+        <th>Machines</th>
+        <th>ROs</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in customers %}
+      <tr>
+        <td><a href="{{ url_for('customers.view_customer', customer_id=c.id) }}" class="link-accent">{{ c.name }}</a></td>
+        <td>{{ c.phone or '—' }}</td>
+        <td>{{ c.email or '—' }}</td>
+        <td>{{ c.city or '—' }}</td>
+        <td>{{ c.machines|length }}</td>
+        <td>{{ c.repair_orders|length }}</td>
+        <td class="td-actions">
+          <a href="{{ url_for('customers.view_customer', customer_id=c.id) }}" class="btn btn-sm btn-outline">View</a>
+          <a href="{{ url_for('customers.edit_customer', customer_id=c.id) }}" class="btn btn-sm btn-ghost">Edit</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="empty-state">No customers found.{% if q %} Try a different search.{% endif %}</p>
+{% endif %}
+{% endblock %}

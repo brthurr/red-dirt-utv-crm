@@ -1,0 +1,97 @@
+{% extends "pdf/pdf_base.html" %}
+{% block footer_ro %}{{ ro.ro_number }}{% endblock %}
+
+{% block pdf_content %}
+<!-- Header -->
+<div class="pdf-header">
+  <div>
+    <div class="shop-name">{{ shop_name }}</div>
+    <div class="shop-tagline">UTV Performance &amp; Repair</div>
+  </div>
+  <div class="shop-contact">
+    {{ shop_address }}<br/>
+    {% if shop_phone %}{{ shop_phone }}<br/>{% endif %}
+    {% if shop_email %}{{ shop_email }}{% endif %}
+  </div>
+</div>
+
+<div class="doc-title-block">
+  <div class="doc-title">Customer Intake Form</div>
+  <div class="doc-subtitle">Please review and complete all applicable fields</div>
+</div>
+<div style="text-align:center; margin-bottom:12px;">
+  <span class="ro-badge">RO# {{ ro.ro_number }}</span>
+  &nbsp;&nbsp;
+  <strong>Date In:</strong> {{ ro.date_in.strftime('%m/%d/%Y') if ro.date_in else '___________' }}
+</div>
+
+<!-- Customer + Machine -->
+<div class="info-grid">
+  <div class="info-box">
+    <div class="info-box-title">Customer Information</div>
+    <div class="info-row"><span class="info-label">Name:</span><span class="info-value">{{ customer.name }}</span></div>
+    <div class="info-row"><span class="info-label">Phone:</span><span class="info-value">{{ customer.phone or '' }}</span></div>
+    <div class="info-row"><span class="info-label">Email:</span><span class="info-value">{{ customer.email or '' }}</span></div>
+    <div class="info-row"><span class="info-label">Address:</span><span class="info-value">{{ customer.address or '' }}</span></div>
+    <div class="info-row"><span class="info-label">City/ST/ZIP:</span><span class="info-value">{{ customer.city or '' }}{% if customer.state %}, {{ customer.state }}{% endif %} {{ customer.zip_code or '' }}</span></div>
+  </div>
+  <div class="info-box">
+    <div class="info-box-title">Vehicle / Machine Information</div>
+    {% if machine %}
+    <div class="info-row"><span class="info-label">Year/Make/Model:</span><span class="info-value">{{ machine.display_name }}</span></div>
+    <div class="info-row"><span class="info-label">Engine/CC:</span><span class="info-value">{{ machine.engine_cc or '' }}</span></div>
+    <div class="info-row"><span class="info-label">Color:</span><span class="info-value">{{ machine.color or '' }}</span></div>
+    <div class="info-row"><span class="info-label">VIN / Serial:</span><span class="info-value">{{ machine.vin or '' }}</span></div>
+    <div class="info-row"><span class="info-label">Odometer/Hrs:</span><span class="info-value">{{ machine.odometer_hours or '' }}</span></div>
+    {% else %}
+    <div class="info-row"><span class="info-label">Year/Make/Model:</span><span class="info-value">_________________________</span></div>
+    <div class="info-row"><span class="info-label">Engine/CC:</span><span class="info-value">_________________________</span></div>
+    <div class="info-row"><span class="info-label">Color:</span><span class="info-value">_________________________</span></div>
+    <div class="info-row"><span class="info-label">VIN / Serial:</span><span class="info-value">_________________________</span></div>
+    <div class="info-row"><span class="info-label">Odometer/Hrs:</span><span class="info-value">_________________________</span></div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Complaint -->
+<div class="section-heading">Reason for Visit / Customer Complaint</div>
+<div class="narrative-box">{{ ro.complaint or '' }}</div>
+
+<!-- Blank lines if no complaint -->
+{% if not ro.complaint %}
+<span class="narrative-lines"></span>
+<span class="narrative-lines"></span>
+<span class="narrative-lines"></span>
+{% endif %}
+
+<!-- Estimate Authorization -->
+<div class="section-heading">Estimate &amp; Authorization</div>
+<div class="waiver-text">
+  <p>I authorize Red Dirt UTV Performance to perform diagnostic work and provide an estimate for the above-described repairs. I understand that a diagnostic fee may apply and will be disclosed prior to teardown.</p>
+  <p>I authorize the repair work described herein to proceed. I agree that Red Dirt UTV Performance is not responsible for loss or damage to vehicles or articles left in vehicles in case of fire, theft, or any other cause beyond the shop's control.</p>
+  <p>By signing below, I acknowledge that I have read and agree to the terms above, and that all information provided is accurate.</p>
+</div>
+
+<div class="sig-grid">
+  <div class="sig-block">
+    <div class="sig-label">Customer Signature</div>
+    <div class="sig-line"></div>
+    <div class="sig-sub-label">{{ customer.name }}</div>
+  </div>
+  <div class="sig-block">
+    <div class="sig-label">Date</div>
+    <div class="sig-line"></div>
+    <div class="sig-sub-label">&nbsp;</div>
+  </div>
+  <div class="sig-block">
+    <div class="sig-label">Received By (Shop)</div>
+    <div class="sig-line"></div>
+    <div class="sig-sub-label">Red Dirt UTV Performance</div>
+  </div>
+  <div class="sig-block">
+    <div class="sig-label">Date</div>
+    <div class="sig-line"></div>
+    <div class="sig-sub-label">&nbsp;</div>
+  </div>
+</div>
+{% endblock %}

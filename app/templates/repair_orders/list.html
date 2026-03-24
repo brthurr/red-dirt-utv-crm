@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Repair Orders — Red Dirt UTV{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2 class="page-title">Repair Orders</h2>
+  <a href="{{ url_for('repair_orders.new_ro') }}" class="btn btn-primary">+ New RO</a>
+</div>
+
+<div class="filter-bar">
+  <form class="search-bar" method="GET">
+    <input type="text" name="q" value="{{ q }}" placeholder="Search customer…" class="form-input search-input" />
+    <select name="status" class="form-input form-select filter-select">
+      <option value="">All Statuses</option>
+      {% for s in statuses %}
+      <option value="{{ s }}" {% if s == status_filter %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-outline">Filter</button>
+    {% if q or status_filter %}<a href="{{ url_for('repair_orders.list_ros') }}" class="btn btn-ghost">Clear</a>{% endif %}
+  </form>
+</div>
+
+{% if ros %}
+<div class="table-wrapper">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>RO #</th>
+        <th>Customer</th>
+        <th>Machine</th>
+        <th>Date In</th>
+        <th>Date Out</th>
+        <th>Status</th>
+        <th>Total</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for ro in ros %}
+      <tr>
+        <td><a href="{{ url_for('repair_orders.view_ro', ro_id=ro.id) }}" class="link-accent">{{ ro.ro_number }}</a></td>
+        <td><a href="{{ url_for('customers.view_customer', customer_id=ro.customer.id) }}" class="link-muted">{{ ro.customer.name }}</a></td>
+        <td>{{ ro.machine.display_name if ro.machine else '—' }}</td>
+        <td>{{ ro.date_in.strftime('%m/%d/%Y') if ro.date_in else '—' }}</td>
+        <td>{{ ro.date_out.strftime('%m/%d/%Y') if ro.date_out else '—' }}</td>
+        <td><span class="badge badge-{{ ro.status|lower|replace(' ', '-') }}">{{ ro.status }}</span></td>
+        <td>${{ '%.2f'|format(ro.grand_total|float) }}</td>
+        <td><a href="{{ url_for('repair_orders.view_ro', ro_id=ro.id) }}" class="btn btn-sm btn-outline">View</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="empty-state">No repair orders found.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Red Dirt UTV{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2 class="page-title">Dashboard</h2>
+  <a href="{{ url_for('customers.new_customer') }}" class="btn btn-primary">+ New Intake</a>
+</div>
+
+<!-- Stats row -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-number">{{ open_ros|length }}</div>
+    <div class="stat-label">Open ROs</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number">{{ customer_count }}</div>
+    <div class="stat-label">Customers</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number">{{ machine_count }}</div>
+    <div class="stat-label">Machines</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number">{{ total_ro_count }}</div>
+    <div class="stat-label">Total ROs</div>
+  </div>
+</div>
+
+<!-- Open Repair Orders -->
+<section class="section">
+  <h3 class="section-title">Open Repair Orders</h3>
+  {% if open_ros %}
+  <div class="table-wrapper">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>RO #</th>
+          <th>Customer</th>
+          <th>Machine</th>
+          <th>Date In</th>
+          <th>Status</th>
+          <th>Total</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ro in open_ros %}
+        <tr>
+          <td><a href="{{ url_for('repair_orders.view_ro', ro_id=ro.id) }}" class="link-accent">{{ ro.ro_number }}</a></td>
+          <td>{{ ro.customer.name }}</td>
+          <td>{{ ro.machine.display_name if ro.machine else '—' }}</td>
+          <td>{{ ro.date_in.strftime('%m/%d/%Y') if ro.date_in else '—' }}</td>
+          <td><span class="badge badge-{{ ro.status|lower|replace(' ', '-') }}">{{ ro.status }}</span></td>
+          <td>${{ '%.2f'|format(ro.grand_total|float) }}</td>
+          <td><a href="{{ url_for('repair_orders.view_ro', ro_id=ro.id) }}" class="btn btn-sm btn-outline">View</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="empty-state">No open repair orders. <a href="{{ url_for('customers.new_customer') }}" class="link-accent">Start a new intake</a>.</p>
+  {% endif %}
+</section>
+
+<!-- Recently Completed -->
+{% if recent_complete %}
+<section class="section">
+  <h3 class="section-title">Recently Completed</h3>
+  <div class="table-wrapper">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>RO #</th>
+          <th>Customer</th>
+          <th>Machine</th>
+          <th>Date Out</th>
+          <th>Status</th>
+          <th>Total</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ro in recent_complete %}
+        <tr>
+          <td><a href="{{ url_for('repair_orders.view_ro', ro_id=ro.id) }}" class="link-accent">{{ ro.ro_number }}</a></td>
+          <td>{{ ro.customer.name }}</td>
+          <td>{{ ro.machine.display_name if ro.machine else '—' }}</td>
+          <td>{{ ro.date_out.strftime('%m/%d/%Y') if ro.date_out else '—' }}</td>
+          <td><span class="badge badge-{{ ro.status|lower|replace(' ', '-') }}">{{ ro.status }}</span></td>
+          <td>${{ '%.2f'|format(ro.grand_total|float) }}</td>
+          <td><a href="{{ url_for('repair_orders.view_ro', ro_id=ro.id) }}" class="btn btn-sm btn-outline">View</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+{% endblock %}
