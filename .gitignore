@@ -10,3 +10,6 @@ build/
 .pytest_cache/
 instance/
 *.log
+uploads/*
+!uploads/.gitkeep
+migrations/
