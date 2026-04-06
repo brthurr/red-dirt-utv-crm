@@ -705,3 +705,138 @@ a:hover { color: var(--crimson-light); text-decoration: underline; }
   .step { border-right: none; border-bottom: 1px solid var(--border); }
   .step:last-child { border-bottom: none; }
 }
+
+/* ============================================================
+   INTAKE PHOTOS
+   ============================================================ */
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+.photo-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem;
+  text-align: center;
+}
+.photo-thumb {
+  width: 100%;
+  height: 130px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  display: block;
+}
+.photo-caption { font-size: 0.8rem; color: var(--text-body); margin-top: 0.35rem; }
+.photo-meta { font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.35rem; }
+
+/* ============================================================
+   CUSTOMER AUTHORIZATIONS
+   ============================================================ */
+.auth-list { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 0.75rem; }
+.auth-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.85rem 1rem;
+}
+.auth-card.auth-success { border-left: 4px solid var(--success); }
+.auth-card.auth-danger  { border-left: 4px solid var(--danger); }
+.auth-card.auth-warning { border-left: 4px solid var(--warning); }
+.auth-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.4rem; }
+.auth-date { font-size: 0.78rem; color: var(--text-muted); }
+.auth-description { font-size: 0.9rem; color: var(--text-body); margin-bottom: 0.5rem; }
+.auth-meta { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.25rem; }
+.auth-notes { font-size: 0.82rem; color: var(--text-dim); font-style: italic; }
+.auth-resolve-form { margin-top: 0.5rem; }
+.auth-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+.btn-success { background: var(--success); color: #fff; border: none; }
+.btn-success:hover { background: #1a6b2e; }
+
+/* ============================================================
+   SIGN-OFF
+   ============================================================ */
+.signoff-confirmed {
+  background: #0d2e17;
+  border: 1px solid var(--success);
+  border-radius: var(--radius);
+  padding: 0.85rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.9rem;
+  color: #5dd882;
+}
+
+/* ============================================================
+   CARD INSET (collapsible sub-forms)
+   ============================================================ */
+.card-inset {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* ============================================================
+   PARTS CATALOG SEARCH
+   ============================================================ */
+.catalog-search { position: relative; margin-bottom: 0.75rem; }
+.catalog-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  z-index: 50;
+  max-height: 260px;
+  overflow-y: auto;
+  box-shadow: var(--shadow);
+}
+.catalog-item {
+  display: grid;
+  grid-template-columns: 130px 1fr 80px 90px;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  border-bottom: 1px solid var(--border);
+}
+.catalog-item:last-child { border-bottom: none; }
+.catalog-item:hover { background: var(--bg-hover); }
+.catalog-pn { color: var(--text-primary); font-weight: 600; }
+.catalog-desc { color: var(--text-body); }
+.catalog-price { color: var(--text-muted); text-align: right; }
+.catalog-stock { font-size: 0.75rem; color: var(--success); text-align: right; }
+.catalog-stock.stock-out { color: var(--danger); }
+
+/* ============================================================
+   INVENTORY TABLE EXTRAS
+   ============================================================ */
+.part-number { font-family: monospace; font-size: 0.88rem; color: var(--text-primary); }
+.row-warning { background: #1e1400; }
+.btn-xs { padding: 0.15rem 0.45rem; font-size: 0.75rem; }
+.action-cell { display: flex; gap: 0.3rem; align-items: center; flex-wrap: wrap; }
+.form-input-display {
+  background: var(--bg-input);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.6rem;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+.text-muted { color: var(--text-muted); }
+.input-partnum { max-width: 120px; }
+.col-partnum { width: 120px; }
+
+@media (max-width: 768px) {
+  .photo-grid { grid-template-columns: repeat(2, 1fr); }
+  .catalog-item { grid-template-columns: 100px 1fr 70px; }
+  .catalog-stock { display: none; }
+}

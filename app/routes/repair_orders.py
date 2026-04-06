@@ -1,18 +1,28 @@
+import os
+import uuid
 from flask import (Blueprint, render_template, redirect, url_for,
                    request, flash, send_file, current_app)
 from flask_login import login_required
+from werkzeug.utils import secure_filename
 from app import db
-from app.models import Customer, Machine, RepairOrder, LineItem, RO_STATUSES
+from app.models import (Customer, Machine, RepairOrder, LineItem, IntakePhoto,
+                        CustomerAuthorization, Part, RO_STATUSES, APPROVAL_METHODS)
 from app.pdf_utils import generate_pdf
-from datetime import date
+from datetime import date, datetime
 import io
 
 ro_bp = Blueprint('repair_orders', __name__, url_prefix='/ro')
+
+ALLOWED_PHOTO_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'heic'}
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def _allowed_photo(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_PHOTO_EXTENSIONS
+
 
 def _next_ro_number():
     """Generate RO number: RO-YYYY-NNNN."""
@@ -34,6 +44,7 @@ def _next_ro_number():
 
 def _save_ro_header(ro):
     ro.complaint = request.form.get('complaint', '').strip()
+    ro.intake_condition = request.form.get('intake_condition', '').strip()
     ro.work_performed = request.form.get('work_performed', '').strip()
     ro.technician = request.form.get('technician', '').strip()
     ro.status = request.form.get('status', 'Open')
@@ -54,13 +65,13 @@ def _save_ro_header(ro):
 
 def _save_line_items(ro):
     """Rebuild line items from POSTed arrays."""
-    # Remove existing items
     for item in list(ro.line_items):
         db.session.delete(item)
     db.session.flush()
 
     types = request.form.getlist('item_type[]')
     descs = request.form.getlist('item_desc[]')
+    part_numbers = request.form.getlist('item_part_number[]')
     qtys = request.form.getlist('item_qty[]')
     prices = request.form.getlist('item_price[]')
     supplied = request.form.getlist('item_customer_supplied[]')
@@ -71,6 +82,7 @@ def _save_line_items(ro):
         item = LineItem(ro_id=ro.id)
         item.item_type = itype
         item.description = desc.strip()
+        item.part_number = part_numbers[i].strip() if i < len(part_numbers) else ''
         item.sort_order = i
         try:
             item.quantity = float(qtys[i]) if i < len(qtys) else 1
@@ -89,7 +101,7 @@ def _save_line_items(ro):
 
 
 # ---------------------------------------------------------------------------
-# Routes
+# Core RO Routes
 # ---------------------------------------------------------------------------
 
 @ro_bp.route('/')
@@ -154,7 +166,8 @@ def new_ro():
 @login_required
 def view_ro(ro_id):
     ro = RepairOrder.query.get_or_404(ro_id)
-    return render_template('repair_orders/detail.html', ro=ro)
+    return render_template('repair_orders/detail.html', ro=ro,
+                           approval_methods=APPROVAL_METHODS)
 
 
 @ro_bp.route('/<int:ro_id>/edit', methods=['GET', 'POST'])
@@ -186,6 +199,12 @@ def edit_ro(ro_id):
 @login_required
 def delete_ro(ro_id):
     ro = RepairOrder.query.get_or_404(ro_id)
+    # Delete associated photos from disk
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    for photo in ro.photos:
+        photo_path = os.path.join(upload_folder, photo.filename)
+        if os.path.exists(photo_path):
+            os.remove(photo_path)
     db.session.delete(ro)
     db.session.commit()
     flash('Repair order deleted.', 'info')
@@ -207,7 +226,150 @@ def update_status(ro_id):
 
 
 # ---------------------------------------------------------------------------
-# PDF generation
+# Photo Routes
+# ---------------------------------------------------------------------------
+
+@ro_bp.route('/<int:ro_id>/photos', methods=['POST'])
+@login_required
+def upload_photo(ro_id):
+    ro = RepairOrder.query.get_or_404(ro_id)
+    files = request.files.getlist('photos')
+    caption = request.form.get('caption', '').strip()
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    uploaded = 0
+
+    for f in files:
+        if not f or not f.filename:
+            continue
+        if not _allowed_photo(f.filename):
+            flash(f'"{f.filename}" is not an allowed image type.', 'warning')
+            continue
+        ext = f.filename.rsplit('.', 1)[1].lower()
+        stored_name = f'{uuid.uuid4().hex}.{ext}'
+        f.save(os.path.join(upload_folder, stored_name))
+        photo = IntakePhoto(
+            ro_id=ro.id,
+            filename=stored_name,
+            original_filename=secure_filename(f.filename),
+            caption=caption,
+        )
+        db.session.add(photo)
+        uploaded += 1
+
+    if uploaded:
+        db.session.commit()
+        flash(f'{uploaded} photo(s) uploaded.', 'success')
+    return redirect(url_for('repair_orders.view_ro', ro_id=ro_id))
+
+
+@ro_bp.route('/<int:ro_id>/photos/<int:photo_id>/delete', methods=['POST'])
+@login_required
+def delete_photo(ro_id, photo_id):
+    photo = IntakePhoto.query.get_or_404(photo_id)
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    photo_path = os.path.join(upload_folder, photo.filename)
+    if os.path.exists(photo_path):
+        os.remove(photo_path)
+    db.session.delete(photo)
+    db.session.commit()
+    flash('Photo deleted.', 'info')
+    return redirect(url_for('repair_orders.view_ro', ro_id=ro_id))
+
+
+@ro_bp.route('/photos/<filename>')
+@login_required
+def serve_photo(filename):
+    """Serve an uploaded photo."""
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    return send_file(os.path.join(upload_folder, filename))
+
+
+# ---------------------------------------------------------------------------
+# Customer Authorization Routes
+# ---------------------------------------------------------------------------
+
+@ro_bp.route('/<int:ro_id>/authorizations', methods=['POST'])
+@login_required
+def add_authorization(ro_id):
+    ro = RepairOrder.query.get_or_404(ro_id)
+    description = request.form.get('description', '').strip()
+    if not description:
+        flash('Authorization description is required.', 'danger')
+        return redirect(url_for('repair_orders.view_ro', ro_id=ro_id))
+    auth = CustomerAuthorization(ro_id=ro.id, description=description)
+    db.session.add(auth)
+    db.session.commit()
+    flash('Authorization request added.', 'success')
+    return redirect(url_for('repair_orders.view_ro', ro_id=ro_id))
+
+
+@ro_bp.route('/<int:ro_id>/authorizations/<int:auth_id>/resolve', methods=['POST'])
+@login_required
+def resolve_authorization(ro_id, auth_id):
+    auth = CustomerAuthorization.query.get_or_404(auth_id)
+    decision = request.form.get('decision')  # 'approve' or 'decline'
+    method = request.form.get('approval_method', '').strip()
+    approved_by = request.form.get('approved_by', '').strip()
+    notes = request.form.get('notes', '').strip()
+
+    auth.approved = (decision == 'approve')
+    auth.approval_method = method
+    auth.approved_by = approved_by
+    auth.approved_at = datetime.utcnow()
+    auth.notes = notes
+    db.session.commit()
+
+    label = 'Approved' if auth.approved else 'Declined'
+    flash(f'Authorization {label.lower()}.', 'success')
+    return redirect(url_for('repair_orders.view_ro', ro_id=ro_id))
+
+
+@ro_bp.route('/<int:ro_id>/authorizations/<int:auth_id>/delete', methods=['POST'])
+@login_required
+def delete_authorization(ro_id, auth_id):
+    auth = CustomerAuthorization.query.get_or_404(auth_id)
+    db.session.delete(auth)
+    db.session.commit()
+    flash('Authorization removed.', 'info')
+    return redirect(url_for('repair_orders.view_ro', ro_id=ro_id))
+
+
+# ---------------------------------------------------------------------------
+# Completion Sign-Off
+# ---------------------------------------------------------------------------
+
+@ro_bp.route('/<int:ro_id>/signoff', methods=['POST'])
+@login_required
+def signoff(ro_id):
+    ro = RepairOrder.query.get_or_404(ro_id)
+    signoff_name = request.form.get('signoff_name', '').strip()
+    if not signoff_name:
+        flash('Name is required for sign-off.', 'danger')
+        return redirect(url_for('repair_orders.view_ro', ro_id=ro_id))
+    ro.signoff_name = signoff_name
+    ro.signoff_at = datetime.utcnow()
+    if ro.status not in ('Complete', 'Delivered'):
+        ro.status = 'Complete'
+        if not ro.date_out:
+            ro.date_out = date.today()
+    db.session.commit()
+    flash(f'Work order signed off by {signoff_name}.', 'success')
+    return redirect(url_for('repair_orders.view_ro', ro_id=ro_id))
+
+
+@ro_bp.route('/<int:ro_id>/signoff/clear', methods=['POST'])
+@login_required
+def clear_signoff(ro_id):
+    ro = RepairOrder.query.get_or_404(ro_id)
+    ro.signoff_name = None
+    ro.signoff_at = None
+    db.session.commit()
+    flash('Sign-off cleared.', 'info')
+    return redirect(url_for('repair_orders.view_ro', ro_id=ro_id))
+
+
+# ---------------------------------------------------------------------------
+# PDF Generation
 # ---------------------------------------------------------------------------
 
 @ro_bp.route('/<int:ro_id>/pdf/<doc_type>')
@@ -228,10 +390,13 @@ def pdf(ro_id, doc_type):
     )
 
 
+# ---------------------------------------------------------------------------
+# AJAX Helpers
+# ---------------------------------------------------------------------------
+
 @ro_bp.route('/api/machines_for_customer')
 @login_required
 def machines_for_customer():
-    """AJAX endpoint: return machines for a customer as JSON."""
     from flask import jsonify
     customer_id = request.args.get('customer_id', type=int)
     machines = Machine.query.filter_by(customer_id=customer_id).all() if customer_id else []

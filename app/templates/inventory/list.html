@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Inventory — DirtDesk{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2 class="page-title">Parts Inventory</h2>
+  <a href="{{ url_for('inventory.new_part') }}" class="btn btn-primary">+ Add Part</a>
+</div>
+
+<!-- Search + filter -->
+<form method="GET" class="search-bar">
+  <input type="text" name="q" value="{{ q }}" placeholder="Search part number, description, vendor…" class="form-input search-input" />
+  <label class="form-label-inline">
+    <input type="checkbox" name="low_stock" value="1" {% if low_stock %}checked{% endif %} /> Low stock only
+  </label>
+  <button type="submit" class="btn btn-outline">Search</button>
+  {% if q or low_stock %}<a href="{{ url_for('inventory.list_parts') }}" class="btn btn-ghost">Clear</a>{% endif %}
+</form>
+
+{% if parts %}
+<div class="table-wrapper">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Part #</th>
+        <th>Description</th>
+        <th>Vendor</th>
+        <th>Cost</th>
+        <th>Sell</th>
+        <th>Margin</th>
+        <th>On Hand</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for part in parts %}
+      <tr class="{% if part.is_low_stock %}row-warning{% endif %}">
+        <td><span class="part-number">{{ part.part_number }}</span></td>
+        <td>{{ part.description }}{% if part.notes %}<br><small class="text-muted">{{ part.notes }}</small>{% endif %}</td>
+        <td>{{ part.vendor or '—' }}</td>
+        <td>${{ '%.2f'|format(part.cost_price|float) }}</td>
+        <td>${{ '%.2f'|format(part.sell_price|float) }}</td>
+        <td>{{ part.margin }}%</td>
+        <td>
+          <span class="badge {% if part.is_low_stock %}badge-danger{% else %}badge-success{% endif %}">
+            {{ part.quantity_on_hand }}
+          </span>
+        </td>
+        <td class="action-cell">
+          <!-- Quick stock adjust -->
+          <form method="POST" action="{{ url_for('inventory.adjust_stock', part_id=part.id) }}" class="inline-form">
+            <input type="hidden" name="delta" value="-1" />
+            <button type="submit" class="btn btn-xs btn-ghost" title="Remove 1">−</button>
+          </form>
+          <form method="POST" action="{{ url_for('inventory.adjust_stock', part_id=part.id) }}" class="inline-form">
+            <input type="hidden" name="delta" value="1" />
+            <button type="submit" class="btn btn-xs btn-ghost" title="Add 1">+</button>
+          </form>
+          <a href="{{ url_for('inventory.edit_part', part_id=part.id) }}" class="btn btn-xs btn-outline">Edit</a>
+          <form method="POST" action="{{ url_for('inventory.delete_part', part_id=part.id) }}"
+                onsubmit="return confirm('Delete {{ part.part_number }}?')" class="inline-form">
+            <button type="submit" class="btn btn-xs btn-danger-ghost">Del</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <p>No parts found.{% if not q %} Add your first part to get started.{% endif %}</p>
+  {% if not q %}<a href="{{ url_for('inventory.new_part') }}" class="btn btn-primary">+ Add Part</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

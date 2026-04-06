@@ -13,3 +13,6 @@ class Config:
     SHOP_ADDRESS = 'Waller, TX'
     SHOP_PHONE = os.environ.get('SHOP_PHONE', '')
     SHOP_EMAIL = os.environ.get('SHOP_EMAIL', '')
+    # Photo uploads
+    UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', os.path.join(os.path.dirname(__file__), 'uploads'))
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16 MB max upload

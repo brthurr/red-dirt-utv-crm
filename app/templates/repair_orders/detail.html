@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ ro.ro_number }} — Red Dirt UTV{% endblock %}
+{% block title %}{{ ro.ro_number }} — DirtDesk{% endblock %}
 
 {% block content %}
 <div class="page-header">
@@ -38,7 +38,6 @@
 
 <!-- RO Details grid -->
 <div class="detail-grid">
-  <!-- Customer + Machine -->
   <div class="detail-card">
     <h3 class="detail-card-title">Customer</h3>
     <dl class="detail-list">
@@ -75,17 +74,157 @@
   </div>
 </div>
 
-<!-- Complaint & Work -->
+<!-- Complaint, Intake Condition, Work Performed -->
 <div class="detail-grid">
   <div class="detail-card">
     <h3 class="detail-card-title">Customer Complaint</h3>
     <p class="narrative-text">{{ ro.complaint or 'Not recorded.' }}</p>
   </div>
   <div class="detail-card">
+    <h3 class="detail-card-title">Condition at Intake</h3>
+    <p class="narrative-text">{{ ro.intake_condition or 'Not recorded.' }}</p>
+  </div>
+  <div class="detail-card">
     <h3 class="detail-card-title">Work Performed</h3>
     <p class="narrative-text">{{ ro.work_performed or 'Not recorded.' }}</p>
   </div>
 </div>
+
+<!-- ------------------------------------------------------------------ -->
+<!-- Intake Photos                                                        -->
+<!-- ------------------------------------------------------------------ -->
+<section class="section">
+  <div class="section-header">
+    <h3 class="section-title">Intake Photos</h3>
+    <button class="btn btn-sm btn-outline" id="togglePhotoForm">+ Add Photos</button>
+  </div>
+
+  <!-- Upload form (hidden by default) -->
+  <div id="photoUploadForm" style="display:none" class="card-inset">
+    <form method="POST" action="{{ url_for('repair_orders.upload_photo', ro_id=ro.id) }}"
+          enctype="multipart/form-data">
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label">Photos <small>(JPG, PNG, HEIC — multiple ok)</small></label>
+          <input type="file" name="photos" multiple accept="image/*" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Caption (optional)</label>
+          <input type="text" name="caption" class="form-input" placeholder="e.g. Left side damage" />
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">Upload</button>
+    </form>
+  </div>
+
+  {% if ro.photos %}
+  <div class="photo-grid">
+    {% for photo in ro.photos %}
+    <div class="photo-card">
+      <a href="{{ url_for('repair_orders.serve_photo', filename=photo.filename) }}" target="_blank">
+        <img src="{{ url_for('repair_orders.serve_photo', filename=photo.filename) }}"
+             alt="{{ photo.caption or photo.original_filename }}"
+             class="photo-thumb" />
+      </a>
+      {% if photo.caption %}<p class="photo-caption">{{ photo.caption }}</p>{% endif %}
+      <p class="photo-meta">{{ photo.uploaded_at.strftime('%m/%d/%Y %I:%M %p') }}</p>
+      <form method="POST"
+            action="{{ url_for('repair_orders.delete_photo', ro_id=ro.id, photo_id=photo.id) }}"
+            onsubmit="return confirm('Delete this photo?')">
+        <button type="submit" class="btn btn-xs btn-danger-ghost">Delete</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="empty-state-sm">No photos attached.</p>
+  {% endif %}
+</section>
+
+<!-- ------------------------------------------------------------------ -->
+<!-- Customer Authorizations                                              -->
+<!-- ------------------------------------------------------------------ -->
+<section class="section">
+  <div class="section-header">
+    <h3 class="section-title">
+      Customer Authorizations
+      {% if ro.pending_authorizations %}
+      <span class="badge badge-warning badge-sm">{{ ro.pending_authorizations|length }} pending</span>
+      {% endif %}
+    </h3>
+    <button class="btn btn-sm btn-outline" id="toggleAuthForm">+ Add Authorization</button>
+  </div>
+
+  <!-- New authorization form -->
+  <div id="authForm" style="display:none" class="card-inset">
+    <form method="POST" action="{{ url_for('repair_orders.add_authorization', ro_id=ro.id) }}">
+      <div class="form-group">
+        <label class="form-label">Issue Found / Work Needing Approval</label>
+        <textarea name="description" class="form-input form-textarea" rows="2"
+                  placeholder="e.g. Found cracked CV boot on left front — recommend replacement"></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">Save</button>
+    </form>
+  </div>
+
+  {% if ro.authorizations %}
+  <div class="auth-list">
+    {% for auth in ro.authorizations %}
+    <div class="auth-card auth-{{ auth.status_badge }}">
+      <div class="auth-header">
+        <span class="badge badge-{{ auth.status_badge }}">{{ auth.status_label }}</span>
+        <span class="auth-date">{{ auth.created_at.strftime('%m/%d/%Y %I:%M %p') }}</span>
+      </div>
+      <p class="auth-description">{{ auth.description }}</p>
+      {% if auth.approved is not none %}
+      <p class="auth-meta">
+        {{ auth.approval_method or '' }}
+        {% if auth.approved_by %} &bull; {{ auth.approved_by }}{% endif %}
+        {% if auth.approved_at %} &bull; {{ auth.approved_at.strftime('%m/%d/%Y %I:%M %p') }}{% endif %}
+      </p>
+      {% if auth.notes %}<p class="auth-notes">{{ auth.notes }}</p>{% endif %}
+      {% else %}
+      <!-- Resolve form -->
+      <form method="POST"
+            action="{{ url_for('repair_orders.resolve_authorization', ro_id=ro.id, auth_id=auth.id) }}"
+            class="auth-resolve-form">
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label class="form-label">Method</label>
+            <select name="approval_method" class="form-input form-select select-sm">
+              {% for m in approval_methods %}
+              <option value="{{ m }}">{{ m }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Approved By</label>
+            <input type="text" name="approved_by" class="form-input"
+                   placeholder="Customer name" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Notes</label>
+            <input type="text" name="notes" class="form-input" placeholder="Optional" />
+          </div>
+        </div>
+        <div class="auth-actions">
+          <button type="submit" name="decision" value="approve" class="btn btn-sm btn-success">Approve</button>
+          <button type="submit" name="decision" value="decline" class="btn btn-sm btn-danger">Decline</button>
+        </div>
+      </form>
+      {% endif %}
+      <form method="POST"
+            action="{{ url_for('repair_orders.delete_authorization', ro_id=ro.id, auth_id=auth.id) }}"
+            onsubmit="return confirm('Remove this authorization?')" class="inline-form">
+        <button type="submit" class="btn btn-xs btn-ghost">Remove</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="empty-state-sm">No authorizations recorded.</p>
+  {% endif %}
+</section>
 
 <!-- Line Items -->
 <section class="section">
@@ -95,11 +234,12 @@
   <div class="table-wrapper">
     <table class="data-table">
       <thead>
-        <tr><th>Description</th><th>Cust. Supplied</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr>
+        <tr><th>Part #</th><th>Description</th><th>Cust. Supplied</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr>
       </thead>
       <tbody>
         {% for item in parts %}
         <tr>
+          <td>{{ item.part_number or '—' }}</td>
           <td>{{ item.description }}</td>
           <td>{% if item.customer_supplied %}<span class="badge badge-warning">Yes</span>{% else %}—{% endif %}</td>
           <td>{{ item.quantity }}</td>
@@ -150,18 +290,44 @@
   <div class="totals-row totals-grand"><span>Grand Total</span><span>${{ '%.2f'|format(ro.grand_total|float) }}</span></div>
 </div>
 
-<!-- Customer-supplied parts note -->
 {% if ro.has_customer_parts %}
 <div class="alert alert-warning">
   <strong>Customer-Supplied Parts:</strong> {{ ro.customer_parts_notes or 'Customer provided parts for this repair.' }}
 </div>
 {% endif %}
 
+<!-- ------------------------------------------------------------------ -->
+<!-- Completion Sign-Off                                                  -->
+<!-- ------------------------------------------------------------------ -->
+<section class="section">
+  <h3 class="section-title">Completion Sign-Off</h3>
+  {% if ro.signoff_at %}
+  <div class="signoff-confirmed">
+    <p>Signed off by <strong>{{ ro.signoff_name }}</strong> on {{ ro.signoff_at.strftime('%m/%d/%Y at %I:%M %p') }}</p>
+    <form method="POST" action="{{ url_for('repair_orders.clear_signoff', ro_id=ro.id) }}"
+          onsubmit="return confirm('Clear sign-off?')" class="inline-form">
+      <button type="submit" class="btn btn-xs btn-ghost">Clear</button>
+    </form>
+  </div>
+  {% else %}
+  <div class="card-inset">
+    <form method="POST" action="{{ url_for('repair_orders.signoff', ro_id=ro.id) }}" class="inline-form">
+      <div class="form-group">
+        <label class="form-label">Customer / Authorized Name</label>
+        <input type="text" name="signoff_name" class="form-input"
+               placeholder="Name of person accepting completed work" required />
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">Record Sign-Off</button>
+    </form>
+  </div>
+  {% endif %}
+</section>
+
 <!-- Delete -->
 <div class="danger-zone">
   <h4 class="danger-title">Danger Zone</h4>
   <form method="POST" action="{{ url_for('repair_orders.delete_ro', ro_id=ro.id) }}"
-        onsubmit="return confirm('Delete {{ ro.ro_number }}?');">
+        onsubmit="return confirm('Delete {{ ro.ro_number }}? This will also delete all photos.');">
     <button type="submit" class="btn btn-danger">Delete RO</button>
   </form>
 </div>
@@ -177,5 +343,17 @@
     menu.classList.toggle('open');
   });
   document.addEventListener('click', function() { menu.classList.remove('open'); });
+
+  // Toggle photo upload form
+  document.getElementById('togglePhotoForm').addEventListener('click', function() {
+    const f = document.getElementById('photoUploadForm');
+    f.style.display = f.style.display === 'none' ? '' : 'none';
+  });
+
+  // Toggle authorization form
+  document.getElementById('toggleAuthForm').addEventListener('click', function() {
+    const f = document.getElementById('authForm');
+    f.style.display = f.style.display === 'none' ? '' : 'none';
+  });
 </script>
 {% endblock %}

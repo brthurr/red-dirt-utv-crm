@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} — DirtDesk{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2 class="page-title">{{ title }}</h2>
+  <a href="{{ url_for('inventory.list_parts') }}" class="btn btn-ghost">Cancel</a>
+</div>
+
+<form method="POST"
+      action="{% if part %}{{ url_for('inventory.edit_part', part_id=part.id) }}{% else %}{{ url_for('inventory.new_part') }}{% endif %}"
+      class="card-form">
+
+  <div class="form-section">
+    <h3 class="form-section-title">Part Details</h3>
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label class="form-label" for="part_number">Part Number <span class="required">*</span></label>
+        <input type="text" id="part_number" name="part_number" class="form-input"
+               value="{{ part.part_number if part else '' }}" required />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="vendor">Vendor / Supplier</label>
+        <input type="text" id="vendor" name="vendor" class="form-input"
+               value="{{ part.vendor if part else '' }}" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="description">Description <span class="required">*</span></label>
+      <input type="text" id="description" name="description" class="form-input"
+             value="{{ part.description if part else '' }}" required />
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="notes">Notes</label>
+      <textarea id="notes" name="notes" class="form-input form-textarea" rows="2">{{ part.notes if part else '' }}</textarea>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <h3 class="form-section-title">Pricing</h3>
+    <div class="form-grid-3">
+      <div class="form-group">
+        <label class="form-label" for="cost_price">Cost Price ($)</label>
+        <input type="number" id="cost_price" name="cost_price" class="form-input"
+               step="0.01" min="0"
+               value="{{ '%.2f'|format(part.cost_price|float) if part else '0.00' }}" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="sell_price">Sell Price ($)</label>
+        <input type="number" id="sell_price" name="sell_price" class="form-input"
+               step="0.01" min="0"
+               value="{{ '%.2f'|format(part.sell_price|float) if part else '0.00' }}" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Margin</label>
+        <div class="form-input form-input-display" id="marginDisplay">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <h3 class="form-section-title">Stock</h3>
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label class="form-label" for="quantity_on_hand">Quantity on Hand</label>
+        <input type="number" id="quantity_on_hand" name="quantity_on_hand" class="form-input"
+               min="0" step="1"
+               value="{{ part.quantity_on_hand if part else 0 }}" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="low_stock_threshold">Low Stock Alert At</label>
+        <input type="number" id="low_stock_threshold" name="low_stock_threshold" class="form-input"
+               min="0" step="1"
+               value="{{ part.low_stock_threshold if part else 2 }}" />
+      </div>
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">Save Part</button>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function calcMargin() {
+  const cost = parseFloat(document.getElementById('cost_price').value) || 0;
+  const sell = parseFloat(document.getElementById('sell_price').value) || 0;
+  const el = document.getElementById('marginDisplay');
+  if (sell > 0) {
+    el.textContent = ((sell - cost) / sell * 100).toFixed(1) + '%';
+  } else {
+    el.textContent = '—';
+  }
+}
+document.getElementById('cost_price').addEventListener('input', calcMargin);
+document.getElementById('sell_price').addEventListener('input', calcMargin);
+calcMargin();
+</script>
+{% endblock %}

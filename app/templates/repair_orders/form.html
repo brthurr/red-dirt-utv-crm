@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ title }} — Red Dirt UTV{% endblock %}
+{% block title %}{{ title }} — DirtDesk{% endblock %}
 
 {% block content %}
 <div class="page-header">
@@ -53,7 +53,6 @@
       Customer: <strong><a href="{{ url_for('customers.view_customer', customer_id=ro.customer.id) }}" class="link-accent">{{ ro.customer.name }}</a></strong>
       {% if ro.machine %} &bull; Machine: <strong>{{ ro.machine.display_name }}</strong>{% endif %}
     </p>
-    <!-- Hidden machine_id for edit -->
     <input type="hidden" name="machine_id" value="{{ ro.machine_id or '' }}" />
     {% endif %}
   </div>
@@ -93,15 +92,20 @@
       </div>
     </div>
 
-    <div class="form-grid-2">
-      <div class="form-group">
-        <label class="form-label" for="complaint">Customer Complaint / Reason for Visit</label>
-        <textarea id="complaint" name="complaint" class="form-input form-textarea" rows="4">{{ ro.complaint if ro else '' }}</textarea>
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="work_performed">Work Performed / Tech Notes</label>
-        <textarea id="work_performed" name="work_performed" class="form-input form-textarea" rows="4">{{ ro.work_performed if ro else '' }}</textarea>
-      </div>
+    <div class="form-group">
+      <label class="form-label" for="complaint">Customer Complaint / Reason for Visit</label>
+      <textarea id="complaint" name="complaint" class="form-input form-textarea" rows="3">{{ ro.complaint if ro else '' }}</textarea>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="intake_condition">Condition at Intake</label>
+      <textarea id="intake_condition" name="intake_condition" class="form-input form-textarea" rows="3"
+                placeholder="Pre-existing damage, fuel level, missing parts, general condition…">{{ ro.intake_condition if ro else '' }}</textarea>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="work_performed">Work Performed / Tech Notes</label>
+      <textarea id="work_performed" name="work_performed" class="form-input form-textarea" rows="4">{{ ro.work_performed if ro else '' }}</textarea>
     </div>
   </div>
 
@@ -111,10 +115,18 @@
       <h3 class="form-section-title">Parts</h3>
       <button type="button" class="btn btn-sm btn-outline" id="addPartBtn">+ Add Part</button>
     </div>
+
+    <!-- Parts catalog lookup -->
+    <div class="catalog-search">
+      <input type="text" id="partSearch" class="form-input" placeholder="Search parts catalog by part # or description…" autocomplete="off" />
+      <div id="partSearchResults" class="catalog-dropdown" style="display:none"></div>
+    </div>
+
     <div class="table-wrapper">
       <table class="data-table line-item-table" id="partsTable">
         <thead>
           <tr>
+            <th class="col-partnum">Part #</th>
             <th class="col-desc">Description</th>
             <th class="col-cust">Cust. Supplied</th>
             <th class="col-qty">Qty</th>
@@ -127,7 +139,8 @@
           {% if ro %}
           {% for item in ro.line_items if item.item_type == 'part' %}
           <tr class="line-row">
-            <td><input type="hidden" name="item_type[]" value="part" /><input type="text" name="item_desc[]" value="{{ item.description }}" class="form-input input-inline" required /></td>
+            <td><input type="hidden" name="item_type[]" value="part" /><input type="text" name="item_part_number[]" value="{{ item.part_number or '' }}" class="form-input input-inline input-partnum" placeholder="Part #" /></td>
+            <td><input type="text" name="item_desc[]" value="{{ item.description }}" class="form-input input-inline" required /></td>
             <td class="td-center"><input type="checkbox" name="item_customer_supplied[]" value="{{ loop.index0 }}" {% if item.customer_supplied %}checked{% endif %} class="checkbox-supplied" /></td>
             <td><input type="number" name="item_qty[]" value="{{ item.quantity }}" class="form-input input-inline input-sm" step="0.01" min="0" /></td>
             <td><input type="number" name="item_price[]" value="{{ item.unit_price }}" class="form-input input-inline input-sm" step="0.01" min="0" /></td>
@@ -151,6 +164,7 @@
       <table class="data-table line-item-table" id="laborTable">
         <thead>
           <tr>
+            <th class="col-partnum"></th>
             <th class="col-desc">Description</th>
             <th class="col-cust"></th>
             <th class="col-qty">Hours</th>
@@ -163,7 +177,8 @@
           {% if ro %}
           {% for item in ro.line_items if item.item_type == 'labor' %}
           <tr class="line-row">
-            <td><input type="hidden" name="item_type[]" value="labor" /><input type="text" name="item_desc[]" value="{{ item.description }}" class="form-input input-inline" required /></td>
+            <td><input type="hidden" name="item_type[]" value="labor" /><input type="hidden" name="item_part_number[]" value="" /></td>
+            <td><input type="text" name="item_desc[]" value="{{ item.description }}" class="form-input input-inline" required /></td>
             <td></td>
             <td><input type="number" name="item_qty[]" value="{{ item.quantity }}" class="form-input input-inline input-sm" step="0.25" min="0" /></td>
             <td><input type="number" name="item_price[]" value="{{ item.unit_price }}" class="form-input input-inline input-sm" step="0.01" min="0" /></td>
@@ -198,7 +213,6 @@
 
 {% block extra_scripts %}
 <script>
-// Today's date for default
 const todayStr = new Date().toISOString().split('T')[0];
 const dateInField = document.getElementById('date_in');
 if (dateInField && !dateInField.value) dateInField.value = todayStr;
@@ -224,19 +238,21 @@ if (custSelect && machineSelect) {
   });
 }
 
-// Row counter for unique checkbox values
+// Row counter
 let rowCounter = document.querySelectorAll('.line-row').length;
 
 function makeRow(type) {
   const tr = document.createElement('tr');
   tr.className = 'line-row';
   const isLabor = type === 'labor';
-  const custCell = isLabor ? '<td></td>' : `<td class="td-center"><input type="checkbox" name="item_customer_supplied[]" value="${rowCounter}" class="checkbox-supplied" /></td>`;
+  const custCell = isLabor ? '<td></td>' :
+    `<td class="td-center"><input type="checkbox" name="item_customer_supplied[]" value="${rowCounter}" class="checkbox-supplied" /></td>`;
+  const partnumCell = isLabor
+    ? `<td><input type="hidden" name="item_type[]" value="labor" /><input type="hidden" name="item_part_number[]" value="" /></td>`
+    : `<td><input type="hidden" name="item_type[]" value="part" /><input type="text" name="item_part_number[]" class="form-input input-inline input-partnum" placeholder="Part #" /></td>`;
   tr.innerHTML = `
-    <td>
-      <input type="hidden" name="item_type[]" value="${type}" />
-      <input type="text" name="item_desc[]" class="form-input input-inline" placeholder="Description" required />
-    </td>
+    ${partnumCell}
+    <td><input type="text" name="item_desc[]" class="form-input input-inline" placeholder="Description" required /></td>
     ${custCell}
     <td><input type="number" name="item_qty[]" value="1" class="form-input input-inline input-sm" step="${isLabor ? '0.25' : '0.01'}" min="0" /></td>
     <td><input type="number" name="item_price[]" value="0.00" class="form-input input-inline input-sm" step="0.01" min="0" /></td>
@@ -261,7 +277,7 @@ document.getElementById('roForm').addEventListener('click', function(e) {
   }
 });
 
-// Live line total calculation
+// Live line total
 document.getElementById('roForm').addEventListener('input', function(e) {
   const row = e.target.closest('.line-row');
   if (!row) return;
@@ -274,6 +290,58 @@ document.getElementById('roForm').addEventListener('input', function(e) {
 // Toggle customer parts notes
 document.getElementById('has_customer_parts').addEventListener('change', function() {
   document.getElementById('customerPartsNotesGroup').style.display = this.checked ? '' : 'none';
+});
+
+// ----------------------------------------------------------------
+// Parts catalog search
+// ----------------------------------------------------------------
+const partSearch = document.getElementById('partSearch');
+const partResults = document.getElementById('partSearchResults');
+let searchTimer;
+
+partSearch.addEventListener('input', function() {
+  clearTimeout(searchTimer);
+  const q = this.value.trim();
+  if (q.length < 2) { partResults.style.display = 'none'; return; }
+  searchTimer = setTimeout(() => {
+    fetch(`/inventory/api/search?q=${encodeURIComponent(q)}`)
+      .then(r => r.json())
+      .then(data => {
+        if (!data.length) { partResults.style.display = 'none'; return; }
+        partResults.innerHTML = data.map(p => `
+          <div class="catalog-item" data-part-number="${p.part_number}"
+               data-description="${p.description}" data-price="${p.sell_price}">
+            <span class="catalog-pn">${p.part_number}</span>
+            <span class="catalog-desc">${p.description}</span>
+            <span class="catalog-price">$${p.sell_price.toFixed(2)}</span>
+            <span class="catalog-stock ${p.quantity_on_hand <= 0 ? 'stock-out' : ''}">
+              ${p.quantity_on_hand} on hand
+            </span>
+          </div>
+        `).join('');
+        partResults.style.display = '';
+      });
+  }, 250);
+});
+
+partResults.addEventListener('click', function(e) {
+  const item = e.target.closest('.catalog-item');
+  if (!item) return;
+  // Add a new row pre-filled with catalog data
+  const tr = makeRow('part');
+  tr.querySelector('[name="item_part_number[]"]').value = item.dataset.partNumber;
+  tr.querySelector('[name="item_desc[]"]').value = item.dataset.description;
+  tr.querySelector('[name="item_price[]"]').value = parseFloat(item.dataset.price).toFixed(2);
+  tr.querySelector('.line-total').textContent = '$' + parseFloat(item.dataset.price).toFixed(2);
+  document.getElementById('partRows').appendChild(tr);
+  partResults.style.display = 'none';
+  partSearch.value = '';
+});
+
+document.addEventListener('click', function(e) {
+  if (!partSearch.contains(e.target) && !partResults.contains(e.target)) {
+    partResults.style.display = 'none';
+  }
 });
 </script>
 {% endblock %}

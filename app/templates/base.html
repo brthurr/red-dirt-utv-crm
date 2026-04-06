@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{% block title %}Red Dirt UTV Performance{% endblock %}</title>
+  <title>{% block title %}DirtDesk — Red Dirt UTV{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
   {% block extra_head %}{% endblock %}
 </head>
@@ -13,13 +13,14 @@
   <nav class="navbar">
     <a class="navbar-brand" href="{{ url_for('main.dashboard') }}">
       <span class="brand-icon">⚙</span>
-      <span class="brand-text">Red Dirt UTV</span>
+      <span class="brand-text">DirtDesk</span>
     </a>
     <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">&#9776;</button>
     <div class="nav-links" id="navLinks">
       <a href="{{ url_for('main.dashboard') }}" class="nav-link {% if request.endpoint == 'main.dashboard' %}active{% endif %}">Dashboard</a>
       <a href="{{ url_for('repair_orders.list_ros') }}" class="nav-link {% if request.blueprint == 'repair_orders' %}active{% endif %}">Repair Orders</a>
       <a href="{{ url_for('customers.list_customers') }}" class="nav-link {% if request.blueprint == 'customers' %}active{% endif %}">Customers</a>
+      <a href="{{ url_for('inventory.list_parts') }}" class="nav-link {% if request.blueprint == 'inventory' %}active{% endif %}">Inventory</a>
       <a href="{{ url_for('customers.new_customer') }}" class="nav-link btn-nav-cta">+ New Intake</a>
       <a href="{{ url_for('auth.logout') }}" class="nav-link nav-logout">Logout</a>
     </div>
@@ -40,7 +41,7 @@
   </main>
 
   <footer class="site-footer">
-    <p>Red Dirt UTV Performance &mdash; Waller, TX</p>
+    <p>Red Dirt UTV Performance &mdash; Waller, TX &mdash; DirtDesk</p>
   </footer>
 
   <script>

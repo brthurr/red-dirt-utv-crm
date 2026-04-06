@@ -86,10 +86,47 @@ class Machine(db.Model):
 
 
 # ---------------------------------------------------------------------------
+# Part (Inventory)
+# ---------------------------------------------------------------------------
+
+class Part(db.Model):
+    __tablename__ = 'parts'
+
+    id = db.Column(db.Integer, primary_key=True)
+    part_number = db.Column(db.String(80), unique=True, nullable=False)
+    description = db.Column(db.String(255), nullable=False)
+    vendor = db.Column(db.String(120))
+    cost_price = db.Column(db.Numeric(10, 2), default=0)
+    sell_price = db.Column(db.Numeric(10, 2), default=0)
+    quantity_on_hand = db.Column(db.Integer, default=0)
+    low_stock_threshold = db.Column(db.Integer, default=2)
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    @property
+    def is_low_stock(self):
+        return self.quantity_on_hand <= self.low_stock_threshold
+
+    @property
+    def margin(self):
+        cost = float(self.cost_price or 0)
+        sell = float(self.sell_price or 0)
+        if sell > 0:
+            return round((sell - cost) / sell * 100, 1)
+        return 0.0
+
+    def __repr__(self):
+        return f'<Part {self.part_number}>'
+
+
+# ---------------------------------------------------------------------------
 # RepairOrder
 # ---------------------------------------------------------------------------
 
 RO_STATUSES = ['Draft', 'Open', 'In Progress', 'Complete', 'Delivered']
+
+APPROVAL_METHODS = ['In Person', 'Phone', 'Text', 'Email', 'Declined']
 
 
 class RepairOrder(db.Model):
@@ -104,6 +141,7 @@ class RepairOrder(db.Model):
     date_out = db.Column(db.Date, nullable=True)
 
     complaint = db.Column(db.Text)           # Customer-reported concern
+    intake_condition = db.Column(db.Text)    # Machine condition at intake
     work_performed = db.Column(db.Text)      # Tech notes / work done
     technician = db.Column(db.String(80))
 
@@ -119,11 +157,21 @@ class RepairOrder(db.Model):
     has_customer_parts = db.Column(db.Boolean, default=False)
     customer_parts_notes = db.Column(db.Text)
 
+    # Completion sign-off
+    signoff_name = db.Column(db.String(120))
+    signoff_at = db.Column(db.DateTime, nullable=True)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     line_items = db.relationship('LineItem', backref='repair_order', lazy=True,
                                  cascade='all, delete-orphan',
                                  order_by='LineItem.sort_order')
+    photos = db.relationship('IntakePhoto', backref='repair_order', lazy=True,
+                             cascade='all, delete-orphan',
+                             order_by='IntakePhoto.uploaded_at')
+    authorizations = db.relationship('CustomerAuthorization', backref='repair_order', lazy=True,
+                                     cascade='all, delete-orphan',
+                                     order_by='CustomerAuthorization.created_at')
 
     def recalculate_totals(self):
         parts = sum(
@@ -145,6 +193,10 @@ class RepairOrder(db.Model):
     def tax_amount(self):
         return round(self.subtotal * float(self.tax_rate or 0), 2)
 
+    @property
+    def pending_authorizations(self):
+        return [a for a in self.authorizations if a.approved is None]
+
     def __repr__(self):
         return f'<RepairOrder {self.ro_number}>'
 
@@ -162,6 +214,7 @@ class LineItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     ro_id = db.Column(db.Integer, db.ForeignKey('repair_orders.id'), nullable=False)
     item_type = db.Column(db.String(10), nullable=False)   # 'part' | 'labor'
+    part_number = db.Column(db.String(80))                 # optional part number
     description = db.Column(db.String(255), nullable=False)
     quantity = db.Column(db.Numeric(10, 2), default=1)
     unit_price = db.Column(db.Numeric(10, 2), default=0)
@@ -174,3 +227,54 @@ class LineItem(db.Model):
 
     def __repr__(self):
         return f'<LineItem {self.item_type}: {self.description}>'
+
+
+# ---------------------------------------------------------------------------
+# IntakePhoto
+# ---------------------------------------------------------------------------
+
+class IntakePhoto(db.Model):
+    __tablename__ = 'intake_photos'
+
+    id = db.Column(db.Integer, primary_key=True)
+    ro_id = db.Column(db.Integer, db.ForeignKey('repair_orders.id'), nullable=False)
+    filename = db.Column(db.String(255), nullable=False)      # stored filename (UUID-based)
+    original_filename = db.Column(db.String(255))             # original upload name
+    caption = db.Column(db.String(255))
+    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<IntakePhoto {self.filename}>'
+
+
+# ---------------------------------------------------------------------------
+# CustomerAuthorization
+# ---------------------------------------------------------------------------
+
+class CustomerAuthorization(db.Model):
+    __tablename__ = 'customer_authorizations'
+
+    id = db.Column(db.Integer, primary_key=True)
+    ro_id = db.Column(db.Integer, db.ForeignKey('repair_orders.id'), nullable=False)
+    description = db.Column(db.Text, nullable=False)   # what was found / what needs approval
+    approved = db.Column(db.Boolean, nullable=True)    # None=pending, True=approved, False=declined
+    approval_method = db.Column(db.String(30))         # In Person, Phone, Text, Email, Declined
+    approved_at = db.Column(db.DateTime, nullable=True)
+    approved_by = db.Column(db.String(120))            # customer name or 'customer'
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @property
+    def status_label(self):
+        if self.approved is None:
+            return 'Pending'
+        return 'Approved' if self.approved else 'Declined'
+
+    @property
+    def status_badge(self):
+        if self.approved is None:
+            return 'warning'
+        return 'success' if self.approved else 'danger'
+
+    def __repr__(self):
+        return f'<CustomerAuthorization {self.id} ro={self.ro_id}>'
