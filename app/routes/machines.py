@@ -23,7 +23,7 @@ def new_machine(customer_id=None):
     """GET: show form. customer_id may come from query string (intake flow)."""
     customer_id = request.args.get('customer_id', type=int)
     intake = request.args.get('intake', 0, type=int)
-    customer = Customer.query.get_or_404(customer_id) if customer_id else None
+    customer = db.get_or_404(Customer, customer_id) if customer_id else None
     customers = Customer.query.order_by(Customer.name).all()
     return render_template('machines/form.html',
                            machine=None,
@@ -41,7 +41,7 @@ def create_machine():
     if not customer_id:
         flash('A customer must be selected.', 'danger')
         return redirect(url_for('machines.new_machine'))
-    customer = Customer.query.get_or_404(customer_id)
+    customer = db.get_or_404(Customer, customer_id)
     machine = Machine(customer_id=customer_id)
     _save_machine_from_form(machine)
     db.session.add(machine)
@@ -60,7 +60,7 @@ def create_machine():
 @machines_bp.route('/<int:machine_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_machine(machine_id):
-    machine = Machine.query.get_or_404(machine_id)
+    machine = db.get_or_404(Machine, machine_id)
     customers = Customer.query.order_by(Customer.name).all()
     if request.method == 'POST':
         _save_machine_from_form(machine)
@@ -78,7 +78,7 @@ def edit_machine(machine_id):
 @machines_bp.route('/<int:machine_id>/delete', methods=['POST'])
 @login_required
 def delete_machine(machine_id):
-    machine = Machine.query.get_or_404(machine_id)
+    machine = db.get_or_404(Machine, machine_id)
     customer_id = machine.customer_id
     db.session.delete(machine)
     db.session.commit()

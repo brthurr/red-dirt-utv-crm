@@ -165,7 +165,7 @@ def new_ro():
 @ro_bp.route('/<int:ro_id>')
 @login_required
 def view_ro(ro_id):
-    ro = RepairOrder.query.get_or_404(ro_id)
+    ro = db.get_or_404(RepairOrder, ro_id)
     return render_template('repair_orders/detail.html', ro=ro,
                            approval_methods=APPROVAL_METHODS)
 
@@ -173,7 +173,7 @@ def view_ro(ro_id):
 @ro_bp.route('/<int:ro_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_ro(ro_id):
-    ro = RepairOrder.query.get_or_404(ro_id)
+    ro = db.get_or_404(RepairOrder, ro_id)
     customers = Customer.query.order_by(Customer.name).all()
     machines = Machine.query.filter_by(customer_id=ro.customer_id).all()
 
@@ -198,7 +198,7 @@ def edit_ro(ro_id):
 @ro_bp.route('/<int:ro_id>/delete', methods=['POST'])
 @login_required
 def delete_ro(ro_id):
-    ro = RepairOrder.query.get_or_404(ro_id)
+    ro = db.get_or_404(RepairOrder, ro_id)
     # Delete associated photos from disk
     upload_folder = current_app.config['UPLOAD_FOLDER']
     for photo in ro.photos:
@@ -214,7 +214,7 @@ def delete_ro(ro_id):
 @ro_bp.route('/<int:ro_id>/status', methods=['POST'])
 @login_required
 def update_status(ro_id):
-    ro = RepairOrder.query.get_or_404(ro_id)
+    ro = db.get_or_404(RepairOrder, ro_id)
     new_status = request.form.get('status')
     if new_status in RO_STATUSES:
         ro.status = new_status
@@ -232,7 +232,7 @@ def update_status(ro_id):
 @ro_bp.route('/<int:ro_id>/photos', methods=['POST'])
 @login_required
 def upload_photo(ro_id):
-    ro = RepairOrder.query.get_or_404(ro_id)
+    ro = db.get_or_404(RepairOrder, ro_id)
     files = request.files.getlist('photos')
     caption = request.form.get('caption', '').strip()
     upload_folder = current_app.config['UPLOAD_FOLDER']
@@ -265,7 +265,7 @@ def upload_photo(ro_id):
 @ro_bp.route('/<int:ro_id>/photos/<int:photo_id>/delete', methods=['POST'])
 @login_required
 def delete_photo(ro_id, photo_id):
-    photo = IntakePhoto.query.get_or_404(photo_id)
+    photo = db.get_or_404(IntakePhoto, photo_id)
     upload_folder = current_app.config['UPLOAD_FOLDER']
     photo_path = os.path.join(upload_folder, photo.filename)
     if os.path.exists(photo_path):
@@ -291,7 +291,7 @@ def serve_photo(filename):
 @ro_bp.route('/<int:ro_id>/authorizations', methods=['POST'])
 @login_required
 def add_authorization(ro_id):
-    ro = RepairOrder.query.get_or_404(ro_id)
+    ro = db.get_or_404(RepairOrder, ro_id)
     description = request.form.get('description', '').strip()
     if not description:
         flash('Authorization description is required.', 'danger')
@@ -306,7 +306,7 @@ def add_authorization(ro_id):
 @ro_bp.route('/<int:ro_id>/authorizations/<int:auth_id>/resolve', methods=['POST'])
 @login_required
 def resolve_authorization(ro_id, auth_id):
-    auth = CustomerAuthorization.query.get_or_404(auth_id)
+    auth = db.get_or_404(CustomerAuthorization, auth_id)
     decision = request.form.get('decision')  # 'approve' or 'decline'
     method = request.form.get('approval_method', '').strip()
     approved_by = request.form.get('approved_by', '').strip()
@@ -327,7 +327,7 @@ def resolve_authorization(ro_id, auth_id):
 @ro_bp.route('/<int:ro_id>/authorizations/<int:auth_id>/delete', methods=['POST'])
 @login_required
 def delete_authorization(ro_id, auth_id):
-    auth = CustomerAuthorization.query.get_or_404(auth_id)
+    auth = db.get_or_404(CustomerAuthorization, auth_id)
     db.session.delete(auth)
     db.session.commit()
     flash('Authorization removed.', 'info')
@@ -341,7 +341,7 @@ def delete_authorization(ro_id, auth_id):
 @ro_bp.route('/<int:ro_id>/signoff', methods=['POST'])
 @login_required
 def signoff(ro_id):
-    ro = RepairOrder.query.get_or_404(ro_id)
+    ro = db.get_or_404(RepairOrder, ro_id)
     signoff_name = request.form.get('signoff_name', '').strip()
     if not signoff_name:
         flash('Name is required for sign-off.', 'danger')
@@ -360,7 +360,7 @@ def signoff(ro_id):
 @ro_bp.route('/<int:ro_id>/signoff/clear', methods=['POST'])
 @login_required
 def clear_signoff(ro_id):
-    ro = RepairOrder.query.get_or_404(ro_id)
+    ro = db.get_or_404(RepairOrder, ro_id)
     ro.signoff_name = None
     ro.signoff_at = None
     db.session.commit()
@@ -379,7 +379,7 @@ def pdf(ro_id, doc_type):
     if doc_type not in valid:
         flash('Unknown document type.', 'danger')
         return redirect(url_for('repair_orders.view_ro', ro_id=ro_id))
-    ro = RepairOrder.query.get_or_404(ro_id)
+    ro = db.get_or_404(RepairOrder, ro_id)
     pdf_bytes = generate_pdf(doc_type, ro, current_app)
     filename = f'{ro.ro_number}_{doc_type}.pdf'
     return send_file(

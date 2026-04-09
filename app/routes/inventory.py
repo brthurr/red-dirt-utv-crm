@@ -74,7 +74,7 @@ def new_part():
 @inventory_bp.route('/<int:part_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_part(part_id):
-    part = Part.query.get_or_404(part_id)
+    part = db.get_or_404(Part, part_id)
     if request.method == 'POST':
         part_number = request.form.get('part_number', '').strip()
         description = request.form.get('description', '').strip()
@@ -96,7 +96,7 @@ def edit_part(part_id):
 @login_required
 def adjust_stock(part_id):
     """Quick stock quantity adjustment (+ or -)."""
-    part = Part.query.get_or_404(part_id)
+    part = db.get_or_404(Part, part_id)
     try:
         delta = int(request.form.get('delta', 0))
     except (ValueError, TypeError):
@@ -110,7 +110,7 @@ def adjust_stock(part_id):
 @inventory_bp.route('/<int:part_id>/delete', methods=['POST'])
 @login_required
 def delete_part(part_id):
-    part = Part.query.get_or_404(part_id)
+    part = db.get_or_404(Part, part_id)
     db.session.delete(part)
     db.session.commit()
     flash(f'Part {part.part_number} deleted.', 'info')

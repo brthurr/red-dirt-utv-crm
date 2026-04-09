@@ -54,14 +54,14 @@ def new_customer():
 @customers_bp.route('/<int:customer_id>')
 @login_required
 def view_customer(customer_id):
-    customer = Customer.query.get_or_404(customer_id)
+    customer = db.get_or_404(Customer, customer_id)
     return render_template('customers/detail.html', customer=customer)
 
 
 @customers_bp.route('/<int:customer_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_customer(customer_id):
-    customer = Customer.query.get_or_404(customer_id)
+    customer = db.get_or_404(Customer, customer_id)
     if request.method == 'POST':
         if not request.form.get('name', '').strip():
             flash('Customer name is required.', 'danger')
@@ -76,7 +76,7 @@ def edit_customer(customer_id):
 @customers_bp.route('/<int:customer_id>/delete', methods=['POST'])
 @login_required
 def delete_customer(customer_id):
-    customer = Customer.query.get_or_404(customer_id)
+    customer = db.get_or_404(Customer, customer_id)
     db.session.delete(customer)
     db.session.commit()
     flash(f'Customer {customer.name} deleted.', 'info')
