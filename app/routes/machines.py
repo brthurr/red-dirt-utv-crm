@@ -6,6 +6,7 @@ from flask import Blueprint, render_template, redirect, url_for, request, flash,
 from flask_login import login_required
 from app import db
 from app.models import Customer, Machine
+from app.utv_models import UTV_MODELS
 
 machines_bp = Blueprint('machines', __name__, url_prefix='/machines')
 
@@ -64,6 +65,13 @@ def api_models():
     year = request.args.get('year', '').strip()
     if not make:
         return jsonify([])
+
+    # Check curated static data first (case-insensitive key match)
+    for key, models in UTV_MODELS.items():
+        if key.lower() == make.lower():
+            return jsonify(models)
+
+    # Fall back to NHTSA vPIC for makes not in our curated list
     try:
         if year and year.isdigit():
             url = (
