@@ -12,4 +12,4 @@ instance/
 *.log
 uploads/*
 !uploads/.gitkeep
-migrations/
+# migrations/ — tracked so servers can run flask db upgrade
