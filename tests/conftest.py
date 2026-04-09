@@ -51,8 +51,7 @@ def client(app):
 def auth_client(app):
     """Authenticated test client (logged in as shop owner)."""
     client = app.test_client()
-    with app.app_context():
-        client.post('/auth/login', data={'password': 'testpass'}, follow_redirects=True)
+    client.post('/login', data={'password': 'testpass'}, follow_redirects=True)
     return client
 
 

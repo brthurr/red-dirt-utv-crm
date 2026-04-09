@@ -16,25 +16,25 @@ from app.models import (Customer, Machine, RepairOrder, LineItem,
 
 class TestAuth:
     def test_login_page_accessible(self, client):
-        r = client.get('/auth/login')
+        r = client.get('/login')
         assert r.status_code == 200
 
     def test_login_wrong_password(self, client):
-        r = client.post('/auth/login', data={'password': 'wrong'}, follow_redirects=True)
+        r = client.post('/login', data={'password': 'wrong'}, follow_redirects=True)
         assert r.status_code == 200
-        assert b'Invalid password' in r.data
+        assert b'Incorrect password' in r.data
 
     def test_login_correct_password(self, client):
-        r = client.post('/auth/login', data={'password': 'testpass'}, follow_redirects=True)
+        r = client.post('/login', data={'password': 'testpass'}, follow_redirects=True)
         assert r.status_code == 200
 
     def test_protected_route_redirects_unauthenticated(self, client):
         r = client.get('/ro/', follow_redirects=False)
         assert r.status_code == 302
-        assert '/auth/login' in r.headers['Location']
+        assert '/login' in r.headers['Location']
 
     def test_logout(self, auth_client):
-        r = auth_client.get('/auth/logout', follow_redirects=True)
+        r = auth_client.get('/logout', follow_redirects=True)
         assert r.status_code == 200
 
 
@@ -98,7 +98,7 @@ class TestCustomers:
         cid = sample_customer.id
         r = auth_client.post(f'/customers/{cid}/delete', follow_redirects=True)
         assert r.status_code == 200
-        assert Customer.query.get(cid) is None
+        assert db.session.get(Customer, cid) is None
 
     def test_search_customers(self, auth_client, sample_customer):
         r = auth_client.get('/customers/?q=Jane')
@@ -201,7 +201,7 @@ class TestRepairOrders:
         ro_id = sample_ro.id
         r = auth_client.post(f'/ro/{ro_id}/delete', follow_redirects=True)
         assert r.status_code == 200
-        assert RepairOrder.query.get(ro_id) is None
+        assert db.session.get(RepairOrder, ro_id) is None
 
     def test_filter_ro_by_status(self, auth_client, sample_ro):
         r = auth_client.get('/ro/?status=Open')
@@ -314,7 +314,7 @@ class TestAuthorizations:
             f'/ro/{sample_ro.id}/authorizations/{auth_id}/delete',
             follow_redirects=True)
         assert r.status_code == 200
-        assert CustomerAuthorization.query.get(auth_id) is None
+        assert db.session.get(CustomerAuthorization, auth_id) is None
 
 
 # ---------------------------------------------------------------------------
@@ -437,7 +437,7 @@ class TestInventory:
         part_id = sample_part.id
         r = auth_client.post(f'/inventory/{part_id}/delete', follow_redirects=True)
         assert r.status_code == 200
-        assert Part.query.get(part_id) is None
+        assert db.session.get(Part, part_id) is None
 
     def test_search_parts_api(self, auth_client, sample_part):
         r = auth_client.get('/inventory/api/search?q=CV')
