@@ -1,0 +1,14 @@
+[Unit]
+Description=DirtDesk UTV Shop Management
+After=network.target
+
+[Service]
+User=dirtdesk
+WorkingDirectory=/opt/dirtdesk/app
+Environment="PATH=/opt/dirtdesk/venv/bin"
+EnvironmentFile=/opt/dirtdesk/app/.env
+ExecStart=/opt/dirtdesk/venv/bin/gunicorn --workers 2 --bind 0.0.0.0:8000 run:app
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
