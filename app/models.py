@@ -1,4 +1,7 @@
-from datetime import datetime, date
+from datetime import datetime, date, timezone
+
+def _utcnow():
+    return datetime.now(timezone.utc)
 from flask_login import UserMixin
 from app import db, login_manager
 
@@ -39,7 +42,7 @@ class Customer(db.Model):
     state = db.Column(db.String(40), default='TX')
     zip_code = db.Column(db.String(20))
     notes = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=_utcnow)
 
     machines = db.relationship('Machine', backref='customer', lazy=True,
                                cascade='all, delete-orphan')
@@ -72,7 +75,7 @@ class Machine(db.Model):
     odometer_hours = db.Column(db.String(40))
     color = db.Column(db.String(60))
     notes = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=_utcnow)
 
     repair_orders = db.relationship('RepairOrder', backref='machine', lazy=True)
 
@@ -101,8 +104,8 @@ class Part(db.Model):
     quantity_on_hand = db.Column(db.Integer, default=0)
     low_stock_threshold = db.Column(db.Integer, default=2)
     notes = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=_utcnow)
+    updated_at = db.Column(db.DateTime, default=_utcnow, onupdate=_utcnow)
 
     @property
     def is_low_stock(self):
@@ -161,7 +164,7 @@ class RepairOrder(db.Model):
     signoff_name = db.Column(db.String(120))
     signoff_at = db.Column(db.DateTime, nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=_utcnow)
 
     line_items = db.relationship('LineItem', backref='repair_order', lazy=True,
                                  cascade='all, delete-orphan',
@@ -241,7 +244,7 @@ class IntakePhoto(db.Model):
     filename = db.Column(db.String(255), nullable=False)      # stored filename (UUID-based)
     original_filename = db.Column(db.String(255))             # original upload name
     caption = db.Column(db.String(255))
-    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+    uploaded_at = db.Column(db.DateTime, default=_utcnow)
 
     def __repr__(self):
         return f'<IntakePhoto {self.filename}>'
@@ -262,7 +265,7 @@ class CustomerAuthorization(db.Model):
     approved_at = db.Column(db.DateTime, nullable=True)
     approved_by = db.Column(db.String(120))            # customer name or 'customer'
     notes = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=_utcnow)
 
     @property
     def status_label(self):

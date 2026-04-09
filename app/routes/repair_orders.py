@@ -8,7 +8,7 @@ from app import db
 from app.models import (Customer, Machine, RepairOrder, LineItem, IntakePhoto,
                         CustomerAuthorization, Part, RO_STATUSES, APPROVAL_METHODS)
 from app.pdf_utils import generate_pdf
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 import io
 
 ro_bp = Blueprint('repair_orders', __name__, url_prefix='/ro')
@@ -128,9 +128,9 @@ def new_ro():
     intake = request.args.get('intake', 0, type=int)
 
     customers = Customer.query.order_by(Customer.name).all()
-    customer = Customer.query.get(customer_id) if customer_id else None
+    customer = db.session.get(Customer, customer_id) if customer_id else None
     machines = Machine.query.filter_by(customer_id=customer_id).all() if customer_id else []
-    machine = Machine.query.get(machine_id) if machine_id else None
+    machine = db.session.get(Machine, machine_id) if machine_id else None
 
     if request.method == 'POST':
         customer_id = request.form.get('customer_id', type=int)
@@ -315,7 +315,7 @@ def resolve_authorization(ro_id, auth_id):
     auth.approved = (decision == 'approve')
     auth.approval_method = method
     auth.approved_by = approved_by
-    auth.approved_at = datetime.utcnow()
+    auth.approved_at = datetime.now(timezone.utc)
     auth.notes = notes
     db.session.commit()
 
@@ -347,7 +347,7 @@ def signoff(ro_id):
         flash('Name is required for sign-off.', 'danger')
         return redirect(url_for('repair_orders.view_ro', ro_id=ro_id))
     ro.signoff_name = signoff_name
-    ro.signoff_at = datetime.utcnow()
+    ro.signoff_at = datetime.now(timezone.utc)
     if ro.status not in ('Complete', 'Delivered'):
         ro.status = 'Complete'
         if not ro.date_out:

@@ -28,8 +28,9 @@ class TestAuth:
         r = client.post('/login', data={'password': 'testpass'}, follow_redirects=True)
         assert r.status_code == 200
 
-    def test_protected_route_redirects_unauthenticated(self, client):
-        r = client.get('/ro/', follow_redirects=False)
+    def test_protected_route_redirects_unauthenticated(self, app):
+        fresh_client = app.test_client()
+        r = fresh_client.get('/ro/', follow_redirects=False)
         assert r.status_code == 302
         assert '/login' in r.headers['Location']
 
