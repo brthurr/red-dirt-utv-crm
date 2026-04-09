@@ -45,45 +45,78 @@
 
     <h3 class="form-section-title">Machine Details</h3>
     <div class="form-grid-3">
+
       <div class="form-group">
         <label class="form-label" for="year">Year</label>
-        <input type="text" id="year" name="year" class="form-input"
-               value="{{ machine.year if machine else '' }}" placeholder="2022" />
+        <select id="year" name="year" class="form-input form-select">
+          <option value="">— Year —</option>
+          {% for y in years %}
+          <option value="{{ y }}" {{ 'selected' if machine and machine.year == y|string }}>{{ y }}</option>
+          {% endfor %}
+        </select>
       </div>
+
       <div class="form-group">
         <label class="form-label" for="make">Make</label>
         <input type="text" id="make" name="make" class="form-input"
-               value="{{ machine.make if machine else '' }}" placeholder="Can-Am" />
+               list="makes-list" autocomplete="off"
+               value="{{ machine.make if machine else '' }}"
+               placeholder="Polaris, Can-Am…" />
+        <datalist id="makes-list">
+          {% for m in utv_makes %}<option value="{{ m }}">{% endfor %}
+        </datalist>
       </div>
+
       <div class="form-group">
         <label class="form-label" for="model">Model</label>
         <input type="text" id="model" name="model" class="form-input"
-               value="{{ machine.model if machine else '' }}" placeholder="Maverick X3" />
+               list="models-list" autocomplete="off"
+               value="{{ machine.model if machine else '' }}"
+               placeholder="RZR Pro XP…" />
+        <datalist id="models-list">
+          {% if machine and machine.model %}<option value="{{ machine.model }}">{% endif %}
+        </datalist>
       </div>
+
       <div class="form-group">
         <label class="form-label" for="engine_cc">Engine / CC</label>
         <input type="text" id="engine_cc" name="engine_cc" class="form-input"
-               value="{{ machine.engine_cc if machine else '' }}" placeholder="900cc Turbo" />
+               list="engine-list" autocomplete="off"
+               value="{{ machine.engine_cc if machine else '' }}"
+               placeholder="900cc Turbo" />
+        <datalist id="engine-list">
+          {% for e in engine_sizes %}<option value="{{ e }}">{% endfor %}
+        </datalist>
       </div>
+
       <div class="form-group">
         <label class="form-label" for="color">Color</label>
         <input type="text" id="color" name="color" class="form-input"
-               value="{{ machine.color if machine else '' }}" placeholder="Black" />
+               list="colors-list" autocomplete="off"
+               value="{{ machine.color if machine else '' }}"
+               placeholder="Black" />
+        <datalist id="colors-list">
+          {% for c in machine_colors %}<option value="{{ c }}">{% endfor %}
+        </datalist>
       </div>
+
       <div class="form-group">
         <label class="form-label" for="odometer_hours">Odometer / Hours</label>
         <input type="text" id="odometer_hours" name="odometer_hours" class="form-input"
                value="{{ machine.odometer_hours if machine else '' }}" placeholder="1,250 mi" />
       </div>
+
       <div class="form-group span-3">
         <label class="form-label" for="vin">VIN / Serial #</label>
         <input type="text" id="vin" name="vin" class="form-input"
                value="{{ machine.vin if machine else '' }}" />
       </div>
+
       <div class="form-group span-3">
         <label class="form-label" for="notes">Notes</label>
         <textarea id="notes" name="notes" class="form-input form-textarea" rows="2">{{ machine.notes if machine else '' }}</textarea>
       </div>
+
     </div>
   </div>
 
@@ -98,4 +131,41 @@
     {% endif %}
   </div>
 </form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+  const makeInput  = document.getElementById('make');
+  const yearSelect = document.getElementById('year');
+  const modelsList = document.getElementById('models-list');
+
+  function loadModels() {
+    const make = makeInput.value.trim();
+    const year = yearSelect.value;
+    if (!make) return;
+
+    const params = new URLSearchParams({ make });
+    if (year) params.append('year', year);
+
+    fetch('/machines/api/models?' + params)
+      .then(r => r.json())
+      .then(models => {
+        modelsList.innerHTML = '';
+        models.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m;
+          modelsList.appendChild(opt);
+        });
+      })
+      .catch(() => {});
+  }
+
+  makeInput.addEventListener('change', loadModels);
+  yearSelect.addEventListener('change', loadModels);
+
+  // Pre-load models when editing an existing machine
+  if (makeInput.value.trim()) loadModels();
+}());
+</script>
 {% endblock %}
