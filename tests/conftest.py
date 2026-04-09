@@ -1,44 +1,50 @@
 """
 Shared pytest fixtures for DirtDesk tests.
 
-Uses an in-memory SQLite database so tests are isolated and fast.
-The test client is pre-authenticated — login logic is tested separately.
+Uses an in-memory SQLite database with StaticPool so the test client and
+the test fixtures share the same connection. The app fixture is function-
+scoped so each test gets a completely fresh app instance with no shared state.
 """
 import pytest
+from sqlalchemy.pool import StaticPool
 from app import create_app, db as _db
 from app.models import Customer, Machine, RepairOrder, LineItem, Part
 
+TEST_CONFIG = {
+    'TESTING': True,
+    'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
+    'SQLALCHEMY_ENGINE_OPTIONS': {
+        'connect_args': {'check_same_thread': False},
+        'poolclass': StaticPool,
+    },
+    'WTF_CSRF_ENABLED': False,
+    'SECRET_KEY': 'test-secret',
+    'SHOP_PASSWORD': 'testpass',
+    'UPLOAD_FOLDER': '/tmp/dirtdesk_test_uploads',
+}
 
-@pytest.fixture(scope='session')
+
+@pytest.fixture
 def app():
-    """Application instance configured for testing."""
-    test_config = {
-        'TESTING': True,
-        'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
-        'WTF_CSRF_ENABLED': False,
-        'SECRET_KEY': 'test-secret',
-        'SHOP_PASSWORD': 'testpass',
-        'UPLOAD_FOLDER': '/tmp/dirtdesk_test_uploads',
-    }
+    """Fresh application instance for each test — no shared state between tests."""
     application = create_app()
-    application.config.update(test_config)
+    application.config.update(TEST_CONFIG)
 
     with application.app_context():
         _db.create_all()
         yield application
+        _db.session.remove()
         _db.drop_all()
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture
 def db(app):
-    """Provide a clean database for each test function."""
-    with app.app_context():
-        yield _db
-        _db.session.rollback()
-        # Truncate all tables between tests
-        for table in reversed(_db.metadata.sorted_tables):
-            _db.session.execute(table.delete())
-        _db.session.commit()
+    """Database handle within the current test's app context."""
+    yield _db
+    _db.session.rollback()
+    for table in reversed(_db.metadata.sorted_tables):
+        _db.session.execute(table.delete())
+    _db.session.commit()
 
 
 @pytest.fixture
@@ -50,9 +56,9 @@ def client(app):
 @pytest.fixture
 def auth_client(app):
     """Authenticated test client (logged in as shop owner)."""
-    client = app.test_client()
-    client.post('/login', data={'password': 'testpass'}, follow_redirects=True)
-    return client
+    c = app.test_client()
+    c.post('/login', data={'password': 'testpass'}, follow_redirects=True)
+    return c
 
 
 @pytest.fixture

@@ -28,11 +28,10 @@ class TestAuth:
         r = client.post('/login', data={'password': 'testpass'}, follow_redirects=True)
         assert r.status_code == 200
 
-    def test_protected_route_redirects_unauthenticated(self, app):
-        with app.test_client() as c:
-            r = c.get('/ro/', follow_redirects=True)
-            # Unauthenticated requests end up at the login page
-            assert b'Enter shop password' in r.data or b'Enter Shop' in r.data
+    def test_protected_route_redirects_unauthenticated(self, client):
+        r = client.get('/ro/', follow_redirects=False)
+        assert r.status_code == 302
+        assert '/login' in r.headers['Location']
 
     def test_logout(self, auth_client):
         r = auth_client.get('/logout', follow_redirects=True)
