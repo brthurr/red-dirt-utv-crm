@@ -108,8 +108,13 @@
 
       <div class="form-group span-3">
         <label class="form-label" for="vin">VIN / Serial #</label>
-        <input type="text" id="vin" name="vin" class="form-input"
-               value="{{ machine.vin if machine else '' }}" />
+        <div style="display:flex;gap:.5rem;">
+          <input type="text" id="vin" name="vin" class="form-input" style="flex:1;"
+                 value="{{ machine.vin if machine else '' }}"
+                 placeholder="Scan or type VIN — auto-fills year, make, engine" />
+          <button type="button" id="vin-decode-btn" class="btn btn-outline btn-sm">Decode VIN</button>
+        </div>
+        <p id="vin-status" style="display:none;margin:.35rem 0 0;font-size:.85rem;"></p>
       </div>
 
       <div class="form-group span-3">
@@ -166,6 +171,44 @@
 
   // Pre-load models when editing an existing machine
   if (makeInput.value.trim()) loadModels();
+
+  // ----- VIN Decode -----
+  const vinInput   = document.getElementById('vin');
+  const decodeBtn  = document.getElementById('vin-decode-btn');
+  const vinStatus  = document.getElementById('vin-status');
+  const engineInput = document.getElementById('engine_cc');
+
+  function showVinStatus(msg, ok) {
+    vinStatus.textContent = msg;
+    vinStatus.style.color = ok ? 'var(--color-success, #2e7d32)' : 'var(--color-warning, #b45309)';
+    vinStatus.style.display = 'block';
+    if (ok) setTimeout(() => { vinStatus.style.display = 'none'; }, 5000);
+  }
+
+  function decodeVin() {
+    const vin = vinInput.value.trim();
+    if (vin.length < 8) { showVinStatus('Enter at least 8 characters.', false); return; }
+    decodeBtn.disabled = true;
+    decodeBtn.textContent = '…';
+    fetch('/machines/api/vin/' + encodeURIComponent(vin))
+      .then(r => r.json())
+      .then(data => {
+        if (!data.ok) { showVinStatus(data.error, false); return; }
+        const filled = [];
+        if (data.year)      { yearSelect.value = data.year;   filled.push('year'); }
+        if (data.make)      { makeInput.value  = data.make;   filled.push('make'); loadModels(); }
+        if (data.engine_cc) { engineInput.value = data.engine_cc; filled.push('engine'); }
+        showVinStatus('✓ Filled from VIN: ' + filled.join(', '), true);
+      })
+      .catch(() => showVinStatus('Could not reach NHTSA — check connection.', false))
+      .finally(() => { decodeBtn.disabled = false; decodeBtn.textContent = 'Decode VIN'; });
+  }
+
+  decodeBtn.addEventListener('click', decodeVin);
+  // Auto-decode on blur once we have a plausible VIN length
+  vinInput.addEventListener('blur', function () {
+    if (this.value.trim().length >= 8 && !yearSelect.value) decodeVin();
+  });
 }());
 </script>
 {% endblock %}
