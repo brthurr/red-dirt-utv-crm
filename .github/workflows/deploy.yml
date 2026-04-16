@@ -1,0 +1,30 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:   # allows manual trigger from GitHub UI
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    timeout-minutes: 10
+
+    steps:
+      - name: Pull latest code
+        run: git -C /opt/dirtdesk/app pull origin main
+
+      - name: Sync dependencies
+        run: /opt/dirtdesk/venv/bin/pip install -q -r /opt/dirtdesk/app/requirements.txt
+
+      - name: Apply database migrations
+        working-directory: /opt/dirtdesk/app
+        env:
+          FLASK_APP: run.py
+        run: /opt/dirtdesk/venv/bin/flask db upgrade
+
+      - name: Restart service
+        run: sudo systemctl restart dirtdesk
+
+      - name: Verify service is running
+        run: systemctl is-active --quiet dirtdesk && echo "dirtdesk is running"
