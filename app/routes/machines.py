@@ -10,37 +10,6 @@ from app.utv_models import UTV_MODELS
 
 machines_bp = Blueprint('machines', __name__, url_prefix='/machines')
 
-# ---------------------------------------------------------------------------
-# Static lookup data
-# ---------------------------------------------------------------------------
-
-# Maps NHTSA's uppercase make names → our display names
-NHTSA_MAKE_MAP = {
-    'POLARIS INDUSTRIES INC': 'Polaris',
-    'POLARIS': 'Polaris',
-    'BRP': 'Can-Am',
-    'BOMBARDIER RECREATIONAL PRODUCTS': 'Can-Am',
-    'YAMAHA MOTOR CORPORATION': 'Yamaha',
-    'YAMAHA': 'Yamaha',
-    'AMERICAN HONDA MOTOR CO., INC.': 'Honda',
-    'HONDA': 'Honda',
-    'KAWASAKI MOTORS CORP., U.S.A.': 'Kawasaki',
-    'KAWASAKI': 'Kawasaki',
-    'ARCTIC CAT INC': 'Arctic Cat',
-    'ARCTIC CAT': 'Arctic Cat',
-    'TEXTRON SPECIALIZED VEHICLES': 'Textron',
-    'CFMOTO': 'CFMOTO',
-    'KUBOTA CORPORATION': 'Kubota',
-    'KUBOTA': 'Kubota',
-    'DEERE & COMPANY': 'John Deere',
-    'JOHN DEERE': 'John Deere',
-    'SUZUKI MOTOR CORPORATION': 'Suzuki',
-    'SUZUKI': 'Suzuki',
-    'KYMCO': 'Kymco',
-    'MASSIMO MOTOR SPORTS': 'Massimo',
-    'HISUN MOTORS': 'Hisun',
-}
-
 UTV_MAKES = [
     'Arctic Cat', 'Can-Am', 'CFMOTO', 'Club Car', 'E-Z-GO',
     'Hisun', 'Honda', 'John Deere', 'Kawasaki', 'Kioti',
@@ -116,50 +85,6 @@ def api_models():
         return jsonify(models)
     except Exception:
         return jsonify([])
-
-
-@machines_bp.route('/api/vin/<path:vin>')
-@login_required
-def api_vin(vin):
-    vin = vin.strip().upper()
-    if len(vin) < 8:
-        return jsonify({'ok': False, 'error': 'VIN too short.'})
-    try:
-        url = (
-            f'https://vpic.nhtsa.dot.gov/api/vehicles/'
-            f'DecodeVinValues/{quote(vin)}?format=json'
-        )
-        with urlopen(url, timeout=8) as resp:
-            data = json.loads(resp.read())
-        r = data.get('Results', [{}])[0]
-
-        # ErrorCode 0 = clean decode; 6/8 = partial but usable
-        error_code = str(r.get('ErrorCode', '0')).strip()
-        if error_code not in ('0', '6', '8'):
-            return jsonify({'ok': False, 'error': 'VIN not found in NHTSA database.'})
-
-        year = r.get('ModelYear', '').strip()
-        raw_make = r.get('Make', '').strip().upper()
-        make = NHTSA_MAKE_MAP.get(raw_make, raw_make.title() if raw_make else '')
-        model = r.get('Model', '').strip()
-
-        cc_raw = r.get('DisplacementCC', '').strip()
-        engine_cc = ''
-        if cc_raw:
-            try:
-                cc_val = float(cc_raw)
-                if cc_val > 0:
-                    engine_cc = f'{int(round(cc_val))}cc'
-            except ValueError:
-                pass
-
-        if not year and not make:
-            return jsonify({'ok': False, 'error': 'VIN not found in NHTSA database.'})
-
-        return jsonify({'ok': True, 'year': year, 'make': make,
-                        'model': model, 'engine_cc': engine_cc})
-    except Exception:
-        return jsonify({'ok': False, 'error': 'Could not reach NHTSA. Try again.'})
 
 
 # ---------------------------------------------------------------------------
