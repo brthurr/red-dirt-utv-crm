@@ -98,6 +98,7 @@ def _save_line_items(ro):
         db.session.add(item)
 
     db.session.flush()
+    db.session.expire(ro, ['line_items'])  # force reload so recalculate sees new items
     ro.recalculate_totals()
 
 

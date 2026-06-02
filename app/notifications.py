@@ -117,7 +117,7 @@ def notify_ro_status_changed(ro, new_status):
 Good news! {machine} {action}.
 
 Work Order: {ro.ro_number}
-Total: ${ro.grand_total}
+Total: ${float(ro.grand_total or 0):.2f}
 
 Give us a call if you have any questions:
   {shop_phone or shop_name}
@@ -131,7 +131,7 @@ Thanks,
 <p>Good news! <strong>{machine}</strong> {action}.</p>
 <table style="border-left:4px solid #27ae60;padding:8px 16px;background:#f3fdf5;margin:16px 0;">
   <tr><td><strong>Work Order:</strong> {ro.ro_number}</td></tr>
-  <tr><td><strong>Total:</strong> ${ro.grand_total}</td></tr>
+  <tr><td><strong>Total:</strong> ${float(ro.grand_total or 0):.2f}</td></tr>
 </table>
 <p>Give us a call if you have any questions:<br>
 <strong>{shop_phone or shop_name}</strong></p>
