@@ -8,6 +8,7 @@ from app import db
 from app.models import (Customer, Machine, RepairOrder, LineItem, IntakePhoto,
                         CustomerAuthorization, Part, RO_STATUSES, APPROVAL_METHODS)
 from app.pdf_utils import generate_pdf
+from app.notifications import notify_authorization_requested, notify_ro_status_changed
 from datetime import date, datetime, timezone
 import io
 
@@ -221,6 +222,7 @@ def update_status(ro_id):
         if new_status in ('Complete', 'Delivered') and not ro.date_out:
             ro.date_out = date.today()
         db.session.commit()
+        notify_ro_status_changed(ro, new_status)
         flash(f'Status updated to {new_status}.', 'success')
     return redirect(url_for('repair_orders.view_ro', ro_id=ro_id))
 
@@ -299,6 +301,7 @@ def add_authorization(ro_id):
     auth = CustomerAuthorization(ro_id=ro.id, description=description)
     db.session.add(auth)
     db.session.commit()
+    notify_authorization_requested(auth)
     flash('Authorization request added.', 'success')
     return redirect(url_for('repair_orders.view_ro', ro_id=ro_id))
 
