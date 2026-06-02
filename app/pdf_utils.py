@@ -14,19 +14,17 @@ def generate_pdf(doc_type: str, ro, app) -> bytes:
     }
     template_name = template_map[doc_type]
 
-    with app.app_context():
-        html_string = render_template(
-            template_name,
-            ro=ro,
-            customer=ro.customer,
-            machine=ro.machine,
-            shop_name=app.config.get('SHOP_NAME', 'Red Dirt UTV Performance'),
-            shop_address=app.config.get('SHOP_ADDRESS', 'Waller, TX'),
-            shop_phone=app.config.get('SHOP_PHONE', ''),
-            shop_email=app.config.get('SHOP_EMAIL', ''),
-        )
+    html_string = render_template(
+        template_name,
+        ro=ro,
+        customer=ro.customer,
+        machine=ro.machine,
+        shop_name=app.config.get('SHOP_NAME', 'Red Dirt UTV Performance'),
+        shop_address=app.config.get('SHOP_ADDRESS', 'Waller, TX'),
+        shop_phone=app.config.get('SHOP_PHONE', ''),
+        shop_email=app.config.get('SHOP_EMAIL', ''),
+    )
 
-    # Base URL for WeasyPrint to resolve static assets
     base_url = os.path.join(app.root_path, 'static')
     pdf_bytes = HTML(string=html_string, base_url=base_url).write_pdf()
     return pdf_bytes
