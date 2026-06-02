@@ -224,6 +224,9 @@ def update_status(ro_id):
     ro = db.get_or_404(RepairOrder, ro_id)
     new_status = request.form.get('status')
     if new_status in RO_STATUSES:
+        if new_status == 'Delivered' and not ro.signoff_name:
+            flash('A sign-off is required before marking an RO as Delivered.', 'danger')
+            return redirect(url_for('repair_orders.view_ro', ro_id=ro_id))
         ro.status = new_status
         if new_status in ('Complete', 'Delivered') and not ro.date_out:
             ro.date_out = date.today()
