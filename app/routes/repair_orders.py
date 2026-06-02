@@ -86,7 +86,7 @@ def _save_line_items(ro):
         if not desc.strip():
             continue
         item = LineItem(ro_id=ro.id)
-        item.item_type = itype
+        item.item_type = itype.lower().strip()
         item.description = desc.strip()
         item.part_number = part_numbers[i].strip() if i < len(part_numbers) else ''
         item.sort_order = i

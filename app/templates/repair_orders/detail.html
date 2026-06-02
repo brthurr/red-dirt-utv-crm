@@ -229,7 +229,7 @@
 <!-- Line Items -->
 <section class="section">
   <h3 class="section-title">Parts</h3>
-  {% set parts = ro.line_items|selectattr('item_type', 'equalto', 'part')|list %}
+  {% set parts = ro.line_items|selectattr('item_type', 'in', ['part', 'Part'])|list %}
   {% if parts %}
   <div class="table-wrapper">
     <table class="data-table">
@@ -257,7 +257,7 @@
 
 <section class="section">
   <h3 class="section-title">Labor</h3>
-  {% set labor = ro.line_items|selectattr('item_type', 'equalto', 'labor')|list %}
+  {% set labor = ro.line_items|selectattr('item_type', 'in', ['labor', 'Labor'])|list %}
   {% if labor %}
   <div class="table-wrapper">
     <table class="data-table">
