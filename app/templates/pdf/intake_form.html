@@ -94,30 +94,40 @@
 
 <!-- Section 3: Machine History -->
 <div class="section-heading">3. Machine History</div>
+{% set acq = ro.machine_acquisition or '' %}
 <div style="margin-bottom:12px; font-size:9pt;">
   <div style="margin-bottom:6px;">How was the machine acquired?</div>
   <div style="display:flex; gap:24px; margin-bottom:8px;">
-    <label>&#9633; New Purchase</label>
-    <label>&#9633; Used — Private Party</label>
-    <label>&#9633; Used — Dealer</label>
-    <label>&#9633; Inherited / Gift</label>
+    <label>{% if acq == 'new' %}&#9745;{% else %}&#9633;{% endif %} New Purchase</label>
+    <label>{% if acq == 'used_private' %}&#9745;{% else %}&#9633;{% endif %} Used — Private Party</label>
+    <label>{% if acq == 'used_dealer' %}&#9745;{% else %}&#9633;{% endif %} Used — Dealer</label>
+    <label>{% if acq == 'inherited' %}&#9745;{% else %}&#9633;{% endif %} Inherited / Gift</label>
   </div>
-  <div style="margin-bottom:6px;">Has anyone else worked on this machine recently? &nbsp; &#9633; Yes &nbsp;&nbsp; &#9633; No</div>
+  <div style="margin-bottom:6px;">Has anyone else worked on this machine recently?
+    &nbsp; {% if ro.prior_work %}&#9745;{% else %}&#9633;{% endif %} Yes
+    &nbsp;&nbsp; {% if not ro.prior_work %}&#9745;{% else %}&#9633;{% endif %} No
+  </div>
+  {% if ro.prior_work_notes %}
+  <div style="font-size:8pt; color:#666; margin-bottom:2px;">Who worked on it and what was done:</div>
+  <div class="field-line" style="min-height:20px;">{{ ro.prior_work_notes }}</div>
+  {% else %}
   <div style="font-size:8pt; color:#666; margin-bottom:2px;">If yes — who and what was done:</div>
   <div class="field-line" style="min-height:20px;">&nbsp;</div>
+  {% endif %}
 </div>
 
 <!-- Section 4: Reason for Service -->
 <div class="section-heading">4. Reason for Service</div>
+{% set svc = (ro.service_types or '').split(',') %}
 <div style="margin-bottom:12px; font-size:9pt;">
   <div style="margin-bottom:5px;">Type of service requested (check all that apply):</div>
   <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:4px; margin-bottom:8px;">
-    <label>&#9633; Diagnostic / Unknown Issue</label>
-    <label>&#9633; Specific Repair</label>
-    <label>&#9633; Trail Ready Inspection</label>
-    <label>&#9633; Performance Upgrade</label>
-    <label>&#9633; Maintenance / Fluids</label>
-    <label>&#9633; Fabrication / Custom Work</label>
+    <label>{% if 'diagnostic' in svc %}&#9745;{% else %}&#9633;{% endif %} Diagnostic / Unknown Issue</label>
+    <label>{% if 'specific_repair' in svc %}&#9745;{% else %}&#9633;{% endif %} Specific Repair</label>
+    <label>{% if 'inspection' in svc %}&#9745;{% else %}&#9633;{% endif %} Trail Ready Inspection</label>
+    <label>{% if 'performance' in svc %}&#9745;{% else %}&#9633;{% endif %} Performance Upgrade</label>
+    <label>{% if 'maintenance' in svc %}&#9745;{% else %}&#9633;{% endif %} Maintenance / Fluids</label>
+    <label>{% if 'fabrication' in svc %}&#9745;{% else %}&#9633;{% endif %} Fabrication / Custom Work</label>
   </div>
   <div style="font-size:8pt; color:#666; margin-bottom:2px;">Describe the issue or requested work in detail:</div>
   <div class="narrative-box">{{ ro.complaint or '' }}</div>

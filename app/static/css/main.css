@@ -424,6 +424,14 @@ a:hover { color: var(--crimson-light); text-decoration: underline; }
 .form-check-group { display: flex; align-items: center; gap: 0.5rem; }
 .form-check-group input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--crimson); }
 
+.radio-group { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; margin-top: 4px; }
+.radio-label { display: flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; cursor: pointer; }
+.radio-label input[type="radio"] { accent-color: var(--crimson); width: 15px; height: 15px; }
+
+.checkbox-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem 1rem; margin-top: 4px; }
+.checkbox-label { display: flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; cursor: pointer; }
+.checkbox-label input[type="checkbox"] { accent-color: var(--crimson); width: 15px; height: 15px; flex-shrink: 0; }
+
 .form-actions {
   display: flex;
   gap: 0.75rem;

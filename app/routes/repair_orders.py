@@ -52,6 +52,11 @@ def _save_ro_header(ro):
     ro.tax_rate = float(request.form.get('tax_rate', 8.25)) / 100
     ro.has_customer_parts = bool(request.form.get('has_customer_parts'))
     ro.customer_parts_notes = request.form.get('customer_parts_notes', '').strip()
+    ro.machine_acquisition = request.form.get('machine_acquisition', '').strip() or None
+    ro.prior_work = bool(request.form.get('prior_work'))
+    ro.prior_work_notes = request.form.get('prior_work_notes', '').strip() or None
+    selected_types = request.form.getlist('service_types[]')
+    ro.service_types = ','.join(selected_types) if selected_types else None
     date_in_str = request.form.get('date_in', '')
     date_out_str = request.form.get('date_out', '')
     if date_in_str:

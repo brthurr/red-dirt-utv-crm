@@ -110,6 +110,43 @@
                 placeholder="Pre-existing damage, fuel level, missing parts, general condition…">{{ ro.intake_condition if ro else '' }}</textarea>
     </div>
 
+    <!-- Machine History -->
+    <div class="form-group">
+      <label class="form-label">How was the machine acquired?</label>
+      <div class="radio-group">
+        {% set acq = ro.machine_acquisition if ro else '' %}
+        <label class="radio-label"><input type="radio" name="machine_acquisition" value="new" {% if acq == 'new' %}checked{% endif %}> New Purchase</label>
+        <label class="radio-label"><input type="radio" name="machine_acquisition" value="used_private" {% if acq == 'used_private' %}checked{% endif %}> Used — Private Party</label>
+        <label class="radio-label"><input type="radio" name="machine_acquisition" value="used_dealer" {% if acq == 'used_dealer' %}checked{% endif %}> Used — Dealer</label>
+        <label class="radio-label"><input type="radio" name="machine_acquisition" value="inherited" {% if acq == 'inherited' %}checked{% endif %}> Inherited / Gift</label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <div class="form-check-group" style="margin-bottom:6px;">
+        <input type="checkbox" id="prior_work" name="prior_work" {% if ro and ro.prior_work %}checked{% endif %} />
+        <label for="prior_work" class="form-label-inline">Someone else has worked on this machine recently</label>
+      </div>
+      <div id="priorWorkNotesGroup" {% if not ro or not ro.prior_work %}style="display:none"{% endif %}>
+        <textarea id="prior_work_notes" name="prior_work_notes" class="form-input form-textarea" rows="2"
+                  placeholder="Who worked on it and what was done…">{{ ro.prior_work_notes if ro else '' }}</textarea>
+      </div>
+    </div>
+
+    <!-- Reason for Service -->
+    <div class="form-group">
+      <label class="form-label">Type of Service (check all that apply)</label>
+      {% set svc = (ro.service_types or '').split(',') if ro else [] %}
+      <div class="checkbox-grid">
+        <label class="checkbox-label"><input type="checkbox" name="service_types[]" value="diagnostic" {% if 'diagnostic' in svc %}checked{% endif %}> Diagnostic / Unknown Issue</label>
+        <label class="checkbox-label"><input type="checkbox" name="service_types[]" value="specific_repair" {% if 'specific_repair' in svc %}checked{% endif %}> Specific Repair</label>
+        <label class="checkbox-label"><input type="checkbox" name="service_types[]" value="inspection" {% if 'inspection' in svc %}checked{% endif %}> Trail Ready Inspection</label>
+        <label class="checkbox-label"><input type="checkbox" name="service_types[]" value="performance" {% if 'performance' in svc %}checked{% endif %}> Performance Upgrade</label>
+        <label class="checkbox-label"><input type="checkbox" name="service_types[]" value="maintenance" {% if 'maintenance' in svc %}checked{% endif %}> Maintenance / Fluids</label>
+        <label class="checkbox-label"><input type="checkbox" name="service_types[]" value="fabrication" {% if 'fabrication' in svc %}checked{% endif %}> Fabrication / Custom Work</label>
+      </div>
+    </div>
+
     <div class="form-group">
       <label class="form-label" for="work_performed">Work Performed / Tech Notes</label>
       <textarea id="work_performed" name="work_performed" class="form-input form-textarea" rows="4">{{ ro.work_performed if ro else '' }}</textarea>
@@ -297,6 +334,11 @@ document.getElementById('roForm').addEventListener('input', function(e) {
 // Toggle customer parts notes
 document.getElementById('has_customer_parts').addEventListener('change', function() {
   document.getElementById('customerPartsNotesGroup').style.display = this.checked ? '' : 'none';
+});
+
+// Toggle prior work notes
+document.getElementById('prior_work').addEventListener('change', function() {
+  document.getElementById('priorWorkNotesGroup').style.display = this.checked ? '' : 'none';
 });
 
 // ----------------------------------------------------------------

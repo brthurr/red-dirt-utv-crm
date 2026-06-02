@@ -160,6 +160,12 @@ class RepairOrder(db.Model):
     has_customer_parts = db.Column(db.Boolean, default=False)
     customer_parts_notes = db.Column(db.Text)
 
+    # Intake intake survey fields
+    machine_acquisition = db.Column(db.String(30), nullable=True)   # new|used_private|used_dealer|inherited
+    prior_work = db.Column(db.Boolean, default=False)
+    prior_work_notes = db.Column(db.Text, nullable=True)
+    service_types = db.Column(db.Text, nullable=True)               # comma-separated list of selected types
+
     # Completion sign-off
     signoff_name = db.Column(db.String(120))
     signoff_at = db.Column(db.DateTime, nullable=True)
