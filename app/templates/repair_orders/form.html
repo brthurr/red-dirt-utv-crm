@@ -51,9 +51,16 @@
     {% else %}
     <p class="context-label">
       Customer: <strong><a href="{{ url_for('customers.view_customer', customer_id=ro.customer.id) }}" class="link-accent">{{ ro.customer.name }}</a></strong>
-      {% if ro.machine %} &bull; Machine: <strong>{{ ro.machine.display_name }}</strong>{% endif %}
     </p>
-    <input type="hidden" name="machine_id" value="{{ ro.machine_id or '' }}" />
+    <div class="form-group">
+      <label class="form-label" for="machine_id">Machine</label>
+      <select id="machine_id" name="machine_id" class="form-input form-select">
+        <option value="">— No Machine —</option>
+        {% for m in machines %}
+        <option value="{{ m.id }}" {% if machine and m.id == machine.id %}selected{% endif %}>{{ m.display_name }}</option>
+        {% endfor %}
+      </select>
+    </div>
     {% endif %}
   </div>
 
